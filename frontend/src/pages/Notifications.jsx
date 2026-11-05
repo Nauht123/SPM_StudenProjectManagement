@@ -23,7 +23,7 @@ export default function Notifications() {
   return (
     <div>
       <div className="row between">
-        <h2>Thông báo</h2>
+        <span className="muted">{list.filter((n) => !n.seen).length} thông báo chưa đọc</span>
         <button onClick={readAll}>Đánh dấu tất cả đã đọc</button>
       </div>
       <Alert error={error} />

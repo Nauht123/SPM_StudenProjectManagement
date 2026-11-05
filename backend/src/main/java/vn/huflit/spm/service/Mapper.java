@@ -15,11 +15,14 @@ public class Mapper {
     private final RegistrationRepository registrations;
     private final TaskRepository tasks;
     private final SubmissionRepository submissions;
+    private final MilestoneRepository milestones;
 
-    public Mapper(RegistrationRepository registrations, TaskRepository tasks, SubmissionRepository submissions) {
+    public Mapper(RegistrationRepository registrations, TaskRepository tasks, SubmissionRepository submissions,
+                  MilestoneRepository milestones) {
         this.registrations = registrations;
         this.tasks = tasks;
         this.submissions = submissions;
+        this.milestones = milestones;
     }
 
     public UserDto user(User u) {
@@ -51,18 +54,34 @@ public class Mapper {
         return new TeamDto(t.getId(), t.getName(), user(t.getLeader()), members, reg);
     }
 
+    /** Milestone chinh: so lieu tong hop tu cac milestone phu; milestone phu: so lieu cua chinh no. */
     public MilestoneDto milestone(Milestone m) {
-        long total = tasks.countByMilestoneId(m.getId());
-        long done = tasks.countByMilestoneIdAndStatus(m.getId(), TaskStatus.DONE);
+        boolean main = m.getParent() == null;
+        long subMilestones = 0;
+        long total;
+        long done;
+        long review;
+        if (main) {
+            subMilestones = milestones.countByParentId(m.getId());
+            total = tasks.countByMilestoneParentId(m.getId());
+            done = tasks.countByMilestoneParentIdAndStatus(m.getId(), TaskStatus.DONE);
+            review = tasks.countByMilestoneParentIdAndStatus(m.getId(), TaskStatus.REVIEW);
+        } else {
+            total = tasks.countByMilestoneId(m.getId());
+            done = tasks.countByMilestoneIdAndStatus(m.getId(), TaskStatus.DONE);
+            review = tasks.countByMilestoneIdAndStatus(m.getId(), TaskStatus.REVIEW);
+        }
         long subs = submissions.countByMilestoneId(m.getId());
-        boolean overdue = m.getDueDate().isBefore(LocalDate.now()) && subs == 0;
-        return new MilestoneDto(m.getId(), m.getTeam().getId(), m.getTitle(), m.getDescription(), m.getDueDate(),
-                total, done, subs, overdue);
+        boolean past = m.getDueDate().isBefore(LocalDate.now());
+        boolean overdue = main ? past && subs == 0 : past && total > 0 && done < total;
+        return new MilestoneDto(m.getId(), m.getTeam().getId(), main ? null : m.getParent().getId(), m.getTitle(),
+                m.getDescription(), m.getDueDate(), subMilestones, total, done, review, subs, overdue);
     }
 
     public TaskDto task(Task t) {
         return new TaskDto(t.getId(), t.getMilestone().getId(), t.getTitle(), t.getDescription(),
-                user(t.getAssignee()), t.getStatus(), t.getDueDate());
+                user(t.getAssignee()), t.getStatus(), t.getDueDate(), t.getResultNote(), t.getResultFileName(),
+                t.getSubmittedAt(), t.getReviewNote(), t.getConfirmedAt());
     }
 
     public SubmissionDto submission(Submission s) {

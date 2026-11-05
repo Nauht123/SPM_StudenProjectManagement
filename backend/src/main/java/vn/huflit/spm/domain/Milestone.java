@@ -22,6 +22,11 @@ public class Milestone {
     @JoinColumn(name = "team_id")
     private Team team;
 
+    /** null = milestone chinh (do giang vien quan ly); khac null = milestone phu (do nhom truong quan ly). */
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private Milestone parent;
+
     @Column(nullable = false, length = 255)
     private String title;
 

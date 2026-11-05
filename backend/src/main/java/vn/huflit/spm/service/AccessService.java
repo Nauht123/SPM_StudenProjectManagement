@@ -61,12 +61,22 @@ public class AccessService {
         }
     }
 
-    public void requireLeaderOrSupervisor(Team team) {
+    /** Nhom truong cua nhom hoac quan tri vien (giang vien KHONG co quyen nay). */
+    public void requireLeaderOrAdmin(Team team) {
         User u = current();
-        if (isLeader(team, u) || isSupervisor(team, u)) {
+        if (u.getRole() == Role.ADMIN || isLeader(team, u)) {
             return;
         }
-        throw ApiException.forbidden("Chỉ nhóm trưởng hoặc giảng viên hướng dẫn mới thực hiện được thao tác này");
+        throw ApiException.forbidden("Chỉ nhóm trưởng mới thực hiện được thao tác này");
+    }
+
+    /** Giang vien huong dan cua nhom hoac quan tri vien. */
+    public void requireSupervisorOrAdmin(Team team) {
+        User u = current();
+        if (u.getRole() == Role.ADMIN || (u.getRole() == Role.LECTURER && isSupervisor(team, u))) {
+            return;
+        }
+        throw ApiException.forbidden("Chỉ giảng viên hướng dẫn của nhóm mới thực hiện được thao tác này");
     }
 
     public void requireSupervisor(Team team) {

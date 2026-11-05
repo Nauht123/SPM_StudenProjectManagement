@@ -29,7 +29,6 @@ export default function AdminUsers() {
 
   return (
     <div>
-      <h2>Quản lý người dùng</h2>
       <Alert error={error} />
       <form className="card form" onSubmit={submit}>
         <h3>Tạo tài khoản</h3>

@@ -1,7 +1,5 @@
 package vn.huflit.spm.service;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,15 +8,9 @@ import vn.huflit.spm.domain.*;
 import vn.huflit.spm.dto.Dtos.*;
 import vn.huflit.spm.repo.*;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 /** Nop bai theo phien ban, tai file, phan hoi cua giang vien. */
 @Service
@@ -30,12 +22,12 @@ public class SubmissionService {
     private final AccessService access;
     private final NotificationService notifications;
     private final Mapper mapper;
-    private final Path uploadRoot;
+    private final FileStorage storage;
 
     public SubmissionService(SubmissionRepository submissions, FeedbackRepository feedbacks,
                              MilestoneRepository milestones, RegistrationRepository registrations,
                              AccessService access, NotificationService notifications, Mapper mapper,
-                             @Value("${app.upload-dir}") String uploadDir) {
+                             FileStorage storage) {
         this.submissions = submissions;
         this.feedbacks = feedbacks;
         this.milestones = milestones;
@@ -43,7 +35,7 @@ public class SubmissionService {
         this.access = access;
         this.notifications = notifications;
         this.mapper = mapper;
-        this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
+        this.storage = storage;
     }
 
     /** Bai nop tinh la tre neu thoi diem nop sau het ngay han (24:00 cua dueDate). */
@@ -55,28 +47,20 @@ public class SubmissionService {
     public SubmissionDto submit(Long milestoneId, MultipartFile file, String note) {
         Milestone m = findMilestone(milestoneId);
         access.requireMember(m.getTeam());
+        if (m.getParent() != null) {
+            throw ApiException.badRequest("Chỉ nộp bài cho milestone chính");
+        }
         if (file == null || file.isEmpty()) {
             throw ApiException.badRequest("Vui lòng chọn file để nộp");
         }
-        String original = sanitize(file.getOriginalFilename());
-        Path dir = uploadRoot.resolve(String.valueOf(milestoneId));
-        Path target = dir.resolve(UUID.randomUUID() + "_" + original).normalize();
-        if (!target.startsWith(uploadRoot)) {
-            throw ApiException.badRequest("Tên file không hợp lệ");
-        }
-        try {
-            Files.createDirectories(dir);
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new ApiException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Không lưu được file");
-        }
+        FileStorage.StoredFile stored = storage.save("submissions/" + milestoneId, file);
         LocalDateTime now = LocalDateTime.now();
         Submission s = new Submission();
         s.setMilestone(m);
         s.setSubmittedBy(access.current());
         s.setVersion(submissions.maxVersion(milestoneId) + 1);
-        s.setFileName(original);
-        s.setStoredPath(uploadRoot.relativize(target).toString());
+        s.setFileName(stored.originalName());
+        s.setStoredPath(stored.path());
         s.setNote(note);
         s.setSubmittedAt(now);
         s.setLate(isLate(m.getDueDate(), now));
@@ -102,11 +86,7 @@ public class SubmissionService {
     }
 
     public Resource load(Submission s) {
-        Path p = uploadRoot.resolve(s.getStoredPath()).normalize();
-        if (!p.startsWith(uploadRoot) || !Files.exists(p)) {
-            throw ApiException.notFound("Không tìm thấy file trên máy chủ");
-        }
-        return new FileSystemResource(p);
+        return storage.load(s.getStoredPath());
     }
 
     // ---------------- Feedback ----------------
@@ -132,12 +112,6 @@ public class SubmissionService {
     }
 
     // ---------------- helpers ----------------
-    private String sanitize(String name) {
-        String base = name == null ? "file" : Paths.get(name).getFileName().toString();
-        String cleaned = base.replaceAll("[^\\p{L}\\p{N}._-]", "_");
-        return cleaned.isBlank() ? "file" : cleaned;
-    }
-
     private Milestone findMilestone(Long id) {
         return milestones.findById(id).orElseThrow(() -> ApiException.notFound("Không tìm thấy milestone"));
     }

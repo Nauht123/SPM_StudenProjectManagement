@@ -24,7 +24,6 @@ export default function Registrations() {
 
   return (
     <div>
-      <h2>Đăng ký đề tài của các nhóm</h2>
       <Alert error={error} />
       <table className="table">
         <thead><tr><th>Nhóm</th><th>Đề tài</th><th>Thời gian</th><th>Trạng thái</th><th /></tr></thead>

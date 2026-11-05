@@ -14,6 +14,8 @@ import vn.huflit.spm.dto.Dtos.*;
 import vn.huflit.spm.service.MilestoneService;
 import vn.huflit.spm.service.NotificationService;
 import vn.huflit.spm.service.SubmissionService;
+import vn.huflit.spm.service.TaskService;
+import vn.huflit.spm.domain.Task;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -23,12 +25,14 @@ import java.util.Map;
 @RequestMapping("/api")
 public class ProjectController {
     private final MilestoneService milestones;
+    private final TaskService taskService;
     private final SubmissionService submissions;
     private final NotificationService notifications;
 
-    public ProjectController(MilestoneService milestones, SubmissionService submissions,
+    public ProjectController(MilestoneService milestones, TaskService taskService, SubmissionService submissions,
                              NotificationService notifications) {
         this.milestones = milestones;
+        this.taskService = taskService;
         this.submissions = submissions;
         this.notifications = notifications;
     }
@@ -60,31 +64,66 @@ public class ProjectController {
         return ResponseEntity.noContent().build();
     }
 
-    // ----- task -----
+    // ----- task (nam trong milestone phu) -----
     @GetMapping("/milestones/{id}/tasks")
     public List<TaskDto> listTasks(@PathVariable Long id) {
-        return milestones.listTasks(id);
+        return taskService.list(id);
     }
 
     @PostMapping("/milestones/{id}/tasks")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     public TaskDto createTask(@PathVariable Long id, @Valid @RequestBody TaskRequest req) {
-        return milestones.createTask(id, req);
+        return taskService.create(id, req);
     }
 
     @PutMapping("/tasks/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     public TaskDto updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequest req) {
-        return milestones.updateTask(id, req);
-    }
-
-    @PatchMapping("/tasks/{id}/status")
-    public TaskDto changeStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest req) {
-        return milestones.changeStatus(id, req);
+        return taskService.update(id, req);
     }
 
     @DeleteMapping("/tasks/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        milestones.deleteTask(id);
+        taskService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/tasks/{id}/start")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    public TaskDto startTask(@PathVariable Long id) {
+        return taskService.start(id);
+    }
+
+    @PostMapping(value = "/tasks/{id}/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('STUDENT')")
+    public TaskDto submitTask(@PathVariable Long id,
+                              @RequestPart(value = "file", required = false) MultipartFile file,
+                              @RequestParam(value = "note", required = false) String note) {
+        return taskService.submit(id, file, note);
+    }
+
+    @PostMapping("/tasks/{id}/confirm")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    public TaskDto confirmTask(@PathVariable Long id) {
+        return taskService.confirm(id);
+    }
+
+    @PostMapping("/tasks/{id}/reject")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    public TaskDto rejectTask(@PathVariable Long id, @Valid @RequestBody ReviewRequest req) {
+        return taskService.reject(id, req.note());
+    }
+
+    @GetMapping("/tasks/{id}/result")
+    public ResponseEntity<Resource> taskResult(@PathVariable Long id) {
+        Task t = taskService.getForResult(id);
+        Resource resource = taskService.loadResult(t);
+        ContentDisposition cd = ContentDisposition.attachment().filename(t.getResultFileName(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, cd.toString())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
     }
 
     // ----- submission -----

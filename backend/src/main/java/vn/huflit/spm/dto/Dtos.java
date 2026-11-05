@@ -78,21 +78,25 @@ public final class Dtos {
     }
 
     // ---------- Milestone / Task ----------
-    public record MilestoneRequest(@NotBlank String title, String description, @NotNull LocalDate dueDate) {
+    /** parentId = null: milestone chinh (giang vien tao); khac null: milestone phu (nhom truong tao). */
+    public record MilestoneRequest(@NotBlank String title, String description, @NotNull LocalDate dueDate,
+                                   Long parentId) {
     }
 
-    public record MilestoneDto(Long id, Long teamId, String title, String description, LocalDate dueDate,
-                               long totalTasks, long doneTasks, long submissions, boolean overdue) {
+    public record MilestoneDto(Long id, Long teamId, Long parentId, String title, String description,
+                               LocalDate dueDate, long subMilestones, long totalTasks, long doneTasks,
+                               long pendingReview, long submissions, boolean overdue) {
     }
 
     public record TaskRequest(@NotBlank String title, String description, Long assigneeId, LocalDate dueDate) {
     }
 
-    public record StatusRequest(@NotNull TaskStatus status) {
+    public record ReviewRequest(@NotBlank String note) {
     }
 
     public record TaskDto(Long id, Long milestoneId, String title, String description, UserDto assignee,
-                          TaskStatus status, LocalDate dueDate) {
+                          TaskStatus status, LocalDate dueDate, String resultNote, String resultFileName,
+                          LocalDateTime submittedAt, String reviewNote, LocalDateTime confirmedAt) {
     }
 
     // ---------- Submission / Feedback ----------

@@ -7,4 +7,8 @@ import java.util.List;
 
 public interface MilestoneRepository extends JpaRepository<Milestone, Long> {
     List<Milestone> findByTeamIdOrderByDueDateAsc(Long teamId);
+
+    List<Milestone> findByParentId(Long parentId);
+
+    long countByParentId(Long parentId);
 }

@@ -28,7 +28,6 @@ export default function Topics() {
 
   return (
     <div>
-      <h2>Danh sách đề tài</h2>
       <Alert error={error} ok={ok} />
       <input className="search" placeholder="Tìm theo tên đề tài hoặc giảng viên…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="grid">

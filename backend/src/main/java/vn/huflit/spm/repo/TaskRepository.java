@@ -17,5 +17,9 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     long countByMilestoneTeamIdAndStatus(Long teamId, TaskStatus status);
 
+    long countByMilestoneParentId(Long parentId);
+
+    long countByMilestoneParentIdAndStatus(Long parentId, TaskStatus status);
+
     void deleteByMilestoneId(Long milestoneId);
 }

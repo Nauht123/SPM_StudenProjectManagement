@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tasks")
@@ -36,4 +37,22 @@ public class Task {
     private TaskStatus status = TaskStatus.TODO;
 
     private LocalDate dueDate;
+
+    /** Ket qua thanh vien bao hoan thanh (file/ghi chu la tuy chon). */
+    @Column(length = 1000)
+    private String resultNote;
+
+    private String resultFileName;
+
+    @Column(length = 1000)
+    private String resultStoredPath;
+
+    /** Thoi diem nop (bao hoan thanh) gan nhat. */
+    private LocalDateTime submittedAt;
+
+    /** Noi dung nhom truong yeu cau sua (neu co). */
+    @Column(length = 1000)
+    private String reviewNote;
+
+    private LocalDateTime confirmedAt;
 }

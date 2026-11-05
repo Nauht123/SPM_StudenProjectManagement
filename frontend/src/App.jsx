@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import api from './api.js';
 import { ROLE_LABEL, useAuth } from './auth.jsx';
+import { Icon } from './ui.jsx';
 import Login from './pages/Login.jsx';
 import Topics from './pages/Topics.jsx';
 import MyTopics from './pages/MyTopics.jsx';
@@ -13,9 +14,22 @@ import MilestoneDetail from './pages/MilestoneDetail.jsx';
 import Notifications from './pages/Notifications.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 
+const PAGE_INFO = [
+  ['/teams/', 'Không gian làm việc nhóm', 'Milestone, tiến độ và bài nộp'],
+  ['/team', 'Nhóm của tôi', 'Quản lý nhóm, thành viên và đề tài đăng ký'],
+  ['/topics', 'Danh sách đề tài', 'Tìm và đăng ký đề tài đồ án'],
+  ['/my-topics', 'Đề tài của tôi', 'Tạo và quản lý đề tài hướng dẫn'],
+  ['/registrations', 'Đăng ký đề tài', 'Duyệt hoặc từ chối đăng ký của các nhóm'],
+  ['/dashboard', 'Bảng điều khiển', 'Theo dõi tiến độ các nhóm đồ án'],
+  ['/milestones/', 'Milestone', 'Công việc, bài nộp và phản hồi'],
+  ['/notifications', 'Thông báo', 'Cập nhật mới nhất liên quan đến bạn'],
+  ['/admin/users', 'Quản lý người dùng', 'Tạo tài khoản và xem danh sách người dùng'],
+];
+
 function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
@@ -24,37 +38,37 @@ function Layout({ children }) {
     load();
     const t = setInterval(load, 30000);
     return () => clearInterval(t);
-  }, []);
+  }, [pathname]);
 
-  const links = [];
+  const menu = [];
   if (user.role === 'STUDENT') {
-    links.push(['/team', 'Nhóm của tôi'], ['/topics', 'Đề tài']);
+    menu.push(['/team', 'Nhóm của tôi', 'users'], ['/topics', 'Đề tài', 'book']);
   } else if (user.role === 'LECTURER') {
-    links.push(['/dashboard', 'Tiến độ các nhóm'], ['/my-topics', 'Đề tài của tôi'], ['/registrations', 'Đăng ký đề tài']);
+    menu.push(['/dashboard', 'Tiến độ các nhóm', 'grid'], ['/my-topics', 'Đề tài của tôi', 'book'], ['/registrations', 'Đăng ký đề tài', 'check']);
   } else {
-    links.push(['/dashboard', 'Tổng quan'], ['/admin/users', 'Người dùng'], ['/topics', 'Đề tài']);
+    menu.push(['/dashboard', 'Tổng quan', 'grid'], ['/admin/users', 'Người dùng', 'user'], ['/topics', 'Đề tài', 'book']);
   }
+  menu.push(['/notifications', 'Thông báo', 'bell', unread]);
+
+  const info = PAGE_INFO.find(([prefix]) => pathname.startsWith(prefix)) || PAGE_INFO[0];
+  const initials = user.fullName.split(' ').slice(-2).map((w) => w[0]).join('').toUpperCase();
 
   return (
     <div className="shell">
       <header className="topbar">
-        <Link to="/" className="brand">Quản lý đồ án</Link>
-        <nav>
-          {links.map(([to, label]) => (
-            <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'active' : '')}>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        <Link to="/" className="brand">Đồ án<span>SV</span></Link>
         <div className="spacer" />
-        <Link to="/notifications" className="bell">
-          Thông báo {unread > 0 && <span className="count">{unread}</span>}
+        <Link to="/notifications" className="bell" title="Thông báo">
+          <Icon name="bell" />
+          {unread > 0 && <span className="count">{unread}</span>}
         </Link>
-        <span className="who">
-          {user.fullName} · {ROLE_LABEL[user.role]}
-        </span>
+        <div className="avatar">{initials}</div>
+        <div className="who">
+          <b>{user.fullName}</b>
+          <span>{ROLE_LABEL[user.role]}</span>
+        </div>
         <button
-          className="link"
+          className="logout"
           onClick={() => {
             logout();
             navigate('/login');
@@ -63,7 +77,28 @@ function Layout({ children }) {
           Đăng xuất
         </button>
       </header>
-      <main className="content">{children}</main>
+      <div className="body">
+        <aside className="sidebar">
+          <div className="side-title">Menu</div>
+          {menu.map(([to, label, icon, badge]) => (
+            <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'side-link active' : 'side-link')}>
+              <Icon name={icon} />
+              <span>{label}</span>
+              {badge > 0 && <em>{badge}</em>}
+            </NavLink>
+          ))}
+        </aside>
+        <div className="main">
+          <div className="page-header">
+            <div className="ph-icon"><Icon name="grid" size={22} /></div>
+            <div>
+              <div className="ph-title">{info[1]}</div>
+              <div className="ph-sub">{info[2]}</div>
+            </div>
+          </div>
+          <main className="content">{children}</main>
+        </div>
+      </div>
     </div>
   );
 }

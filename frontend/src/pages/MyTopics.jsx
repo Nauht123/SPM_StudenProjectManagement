@@ -41,7 +41,6 @@ export default function MyTopics() {
 
   return (
     <div>
-      <h2>Đề tài của tôi</h2>
       <Alert error={error} />
       <form className="card form" onSubmit={submit}>
         <h3>{editing ? 'Sửa đề tài' : 'Thêm đề tài mới'}</h3>

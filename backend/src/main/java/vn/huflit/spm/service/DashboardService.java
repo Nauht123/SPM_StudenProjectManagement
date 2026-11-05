@@ -46,7 +46,8 @@ public class DashboardService {
         long done = tasks.countByMilestoneTeamIdAndStatus(team.getId(), TaskStatus.DONE);
         int percent = total == 0 ? 0 : (int) Math.round(done * 100.0 / total);
         long overdue = milestones.findByTeamIdOrderByDueDateAsc(team.getId()).stream()
-                .filter(m -> m.getDueDate().isBefore(LocalDate.now()) && submissions.countByMilestoneId(m.getId()) == 0)
+                .filter(m -> m.getParent() == null && m.getDueDate().isBefore(LocalDate.now())
+                        && submissions.countByMilestoneId(m.getId()) == 0)
                 .count();
         long late = submissions.countByMilestoneTeamIdAndLateTrue(team.getId());
         String topicTitle = registrations.findFirstByTeamIdAndStatus(team.getId(), RegStatus.APPROVED)

@@ -22,16 +22,19 @@ api.interceptors.response.use(
 
 export const errMsg = (e) => e?.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại';
 
-export async function downloadSubmission(sub) {
-  const res = await api.get(`/submissions/${sub.id}/download`, { responseType: 'blob' });
-  const url = URL.createObjectURL(res.data);
+export async function downloadFile(url, fileName) {
+  const res = await api.get(url, { responseType: 'blob' });
+  const href = URL.createObjectURL(res.data);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = sub.fileName;
+  a.href = href;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(href);
 }
+
+export const downloadSubmission = (sub) => downloadFile(`/submissions/${sub.id}/download`, sub.fileName);
+export const downloadTaskResult = (task) => downloadFile(`/tasks/${task.id}/result`, task.resultFileName);
 
 export default api;
