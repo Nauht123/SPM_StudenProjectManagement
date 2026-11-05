@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { errMsg } from '../api.js';
 import { useAuth } from '../auth.jsx';
-import { Alert, Badge, StatCard, fmtDate } from '../ui.jsx';
+import { Alert, Badge, Progress, StatCard, fmtDate } from '../ui.jsx';
 
 function MilestoneStatus({ m }) {
+  if (m.archived) return <Badge kind="bad">Đã lưu trữ</Badge>;
   if (m.overdue) return <Badge kind="bad">Quá hạn</Badge>;
   if (m.parentId === null || m.parentId === undefined) {
     return m.submissions > 0 ? <Badge kind="good">Đã nộp</Badge> : <Badge>Đang thực hiện</Badge>;
@@ -61,17 +62,28 @@ export default function TeamDetail() {
   const setSub = (parentId, k, v) => setSubForms({ ...subForms, [parentId]: { ...(subForms[parentId] || {}), [k]: v } });
 
   const remove = (m) => {
-    if (!window.confirm(`Xóa milestone "${m.title}"?`)) return;
+    if (!window.confirm(`Xóa milestone "${m.title}"? Chỉ xóa được khi milestone chưa có dữ liệu.`)) return;
     run(() => api.delete(`/milestones/${m.id}`));
   };
+
+  // Milestone da co bai nop / milestone phu / task thi luu tru (archive) thay vi xoa
+  const archive = (m) => {
+    if (!window.confirm(`Lưu trữ milestone "${m.title}"? Milestone sẽ chuyển sang chỉ xem và không tính vào tiến độ.`)) return;
+    run(() => api.post(`/milestones/${m.id}/archive`));
+  };
+  const restore = (m) => run(() => api.post(`/milestones/${m.id}/restore`));
+  const isEmpty = (m) => m.submissions === 0 && m.subMilestones === 0 && m.totalTasks === 0 && !milestones.some((x) => x.parentId === m.id);
 
   if (!team) return <Alert error={error} />;
 
   // Quyen: giang vien quan ly milestone chinh; nhom truong (hoac admin) quan ly milestone phu
   const canMain = user.role === 'LECTURER' || user.role === 'ADMIN';
   const canSub = user.role === 'ADMIN' || (user.role === 'STUDENT' && team.leader.id === user.id);
-  const mains = milestones.filter((m) => !m.parentId);
-  const subsOf = (id) => milestones.filter((m) => m.parentId === id);
+  const allMains = milestones.filter((m) => !m.parentId);
+  const mains = allMains.filter((m) => !m.archived);
+  const archivedMains = allMains.filter((m) => m.archived);
+  const subsOf = (id) => milestones.filter((m) => m.parentId === id && !m.archived);
+  const archivedSubsOf = (id) => milestones.filter((m) => m.parentId === id && m.archived);
 
   return (
     <div>
@@ -79,7 +91,7 @@ export default function TeamDetail() {
       <Alert error={error} />
       {progress && (
         <div className="stat-grid four">
-          <StatCard tone="blue" icon="target" value={`${progress.percent}%`} label="Tiến độ task" />
+          <StatCard tone="blue" icon="target" value={`${progress.percent}%`} label="Tiến độ (theo trọng số task)" note={`${progress.doneWeight}/${progress.totalWeight} điểm trọng số`} />
           <StatCard tone="green" icon="check" value={`${progress.doneTasks}/${progress.totalTasks}`} label="Task hoàn thành" />
           <StatCard tone="purple" icon="clock" value={progress.overdueMilestones} label="Milestone chính quá hạn chưa nộp" />
           <StatCard tone="red" icon="alert" value={progress.lateSubmissions} label="Bài nộp trễ hạn" />
@@ -90,6 +102,8 @@ export default function TeamDetail() {
         <p><b>Thành viên:</b> {team.members.map((m) => m.fullName + (m.id === team.leader.id ? ' (nhóm trưởng)' : '')).join(', ')}</p>
         <p className="muted small">Giảng viên quản lý milestone chính · Nhóm trưởng quản lý milestone phụ và giao task · Thành viên thực hiện task.</p>
       </div>
+
+      <ContributionPanel teamId={teamId} reloadKey={milestones.length} />
 
       <h3>Milestone chính</h3>
       {mains.map((m) => {
@@ -106,7 +120,12 @@ export default function TeamDetail() {
                   {m.pendingReview > 0 && <> · <b>{m.pendingReview} task chờ xác nhận</b></>}
                 </div>
               </div>
-              {canMain && <button className="danger" onClick={() => remove(m)}>Xóa</button>}
+              {canMain && (
+                <div className="row">
+                  <button onClick={() => archive(m)}>Lưu trữ</button>
+                  {isEmpty(m) && <button className="danger" onClick={() => remove(m)}>Xóa</button>}
+                </div>
+              )}
             </div>
 
             {subs.length > 0 && (
@@ -117,15 +136,31 @@ export default function TeamDetail() {
                     <tr key={s.id}>
                       <td><Link to={`/milestones/${s.id}`}>{s.title}</Link></td>
                       <td>{fmtDate(s.dueDate)}</td>
-                      <td>{s.doneTasks}/{s.totalTasks}{s.pendingReview > 0 && <> <Badge kind="warn">{s.pendingReview} chờ xác nhận</Badge></>}</td>
+                      <td>{s.doneTasks}/{s.totalTasks} ({s.percent}%){s.pendingReview > 0 && <> <Badge kind="warn">{s.pendingReview} chờ xác nhận</Badge></>}</td>
                       <td><MilestoneStatus m={s} /></td>
-                      <td className="actions">{canSub && <button className="danger" onClick={() => remove(s)}>Xóa</button>}</td>
+                      <td className="actions">
+                        {canSub && <button onClick={() => archive(s)}>Lưu trữ</button>}{' '}
+                        {canSub && s.totalTasks === 0 && <button className="danger" onClick={() => remove(s)}>Xóa</button>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
             {subs.length === 0 && <p className="muted small">Chưa có milestone phụ.</p>}
+            {archivedSubsOf(m.id).length > 0 && (
+              <details className="subform">
+                <summary>Milestone phụ đã lưu trữ ({archivedSubsOf(m.id).length})</summary>
+                <ul>
+                  {archivedSubsOf(m.id).map((s) => (
+                    <li key={s.id}>
+                      <Link to={`/milestones/${s.id}`}>{s.title}</Link>{' '}
+                      {canSub && <button className="link small" onClick={() => restore(s)}>Khôi phục</button>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
 
             {canSub && (
               <details className="subform">
@@ -145,6 +180,20 @@ export default function TeamDetail() {
       })}
       {mains.length === 0 && <p className="muted">Giảng viên chưa tạo milestone chính nào.</p>}
 
+      {archivedMains.length > 0 && (
+        <details className="card">
+          <summary><b>Milestone chính đã lưu trữ ({archivedMains.length})</b> <span className="muted small">— chỉ xem, không tính vào tiến độ</span></summary>
+          <ul>
+            {archivedMains.map((m) => (
+              <li key={m.id}>
+                <Link to={`/milestones/${m.id}`}>{m.title}</Link> <span className="muted small">hạn {fmtDate(m.dueDate)} · {m.submissions} bài nộp</span>{' '}
+                {canMain && <button className="link small" onClick={() => restore(m)}>Khôi phục</button>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       {canMain && (
         <form className="card form" onSubmit={createMain}>
           <h3>Thêm milestone chính</h3>
@@ -157,5 +206,91 @@ export default function TeamDetail() {
         </form>
       )}
     </div>
+  );
+}
+
+/** Dong gop ca nhan: GV/admin/nhom truong xem ca nhom, thanh vien chi xem cua minh. */
+function ContributionPanel({ teamId, reloadKey }) {
+  const [report, setReport] = useState(null);
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState(null);
+
+  useEffect(() => {
+    api.get(`/teams/${teamId}/contributions`).then((r) => setReport(r.data)).catch((e) => setError(errMsg(e)));
+  }, [teamId, reloadKey]);
+
+  if (error) return <Alert error={error} />;
+  if (!report) return null;
+  const STATUS = { TODO: 'Cần làm', DOING: 'Đang làm', REVIEW: 'Chờ xác nhận', DONE: 'Hoàn thành' };
+
+  return (
+    <div className="card flush">
+      <div className="card-head pad">
+        <h3>Đóng góp cá nhân</h3>
+        <span className="muted small">Tổng điểm nhóm: {report.totalScore}</span>
+      </div>
+      <table className="table plain contrib">
+        <thead>
+          <tr>
+            <th>Thành viên</th><th>Tỷ lệ đóng góp</th><th>Điểm</th><th>Task xong / được giao</th>
+            <th>Đúng hạn</th><th>Trễ hạn</th><th>Chưa xong</th><th>Bị yêu cầu sửa</th><th>Tiến độ cá nhân</th>
+            <th>Bài nộp (upload / đóng góp)</th><th />
+          </tr>
+        </thead>
+        <tbody>
+          {report.members.map((r) => (
+            <MemberRows key={r.member.id} r={r} open={open === r.member.id} onToggle={() => setOpen(open === r.member.id ? null : r.member.id)} status={STATUS} />
+          ))}
+        </tbody>
+      </table>
+      {report.members.length === 0 && <p className="muted pad">Chưa có dữ liệu.</p>}
+      <div className="formula small muted pad">{report.formula}</div>
+    </div>
+  );
+}
+
+function MemberRows({ r, open, onToggle, status }) {
+  return (
+    <>
+      <tr>
+        <td><b>{r.member.fullName}</b>{r.leader && <> <Badge kind="warn">Nhóm trưởng</Badge></>}</td>
+        <td style={{ minWidth: 130 }}>
+          <div className="contrib-bar" title={`${r.sharePercent}%`}><div style={{ width: `${r.sharePercent}%` }} /></div>
+          <span className="small muted">{r.sharePercent}%</span>
+        </td>
+        <td><b>{r.score}</b></td>
+        <td>{r.doneTasks}/{r.assignedTasks}</td>
+        <td>{r.onTimeTasks}</td>
+        <td>{r.lateTasks > 0 ? <Badge kind="bad">{r.lateTasks}</Badge> : 0}</td>
+        <td>{r.unfinishedTasks}{r.overdueOpenTasks > 0 && <> <Badge kind="bad">{r.overdueOpenTasks} quá hạn</Badge></>}</td>
+        <td>{r.revisionCount}</td>
+        <td style={{ minWidth: 120 }}><Progress percent={r.progressPercent} /><span className="small muted">{r.weightDone}/{r.weightAssigned} điểm TS</span></td>
+        <td>{r.submissionsUploaded} / {r.submissionsContributed}</td>
+        <td><button className="link small" onClick={onToggle}>{open ? 'Ẩn chi tiết' : 'Chi tiết'}</button></td>
+      </tr>
+      {open && (
+        <tr>
+          <td colSpan={11}>
+            <div className="small muted">
+              Khối lượng đã hoàn thành: {r.workloadHoursDone}h · Task hủy: {r.cancelledTasks} · Đề xuất task: {r.suggestedTasks} (được duyệt {r.approvedSuggestions})
+            </div>
+            <table className="table plain contrib">
+              <thead><tr><th>Task</th><th>Milestone phụ</th><th>Trạng thái</th><th>Trọng số</th><th>Độ khó</th><th>Giờ</th><th>Hạn</th><th>Đúng hạn</th><th>Sửa lại</th><th>Chất lượng</th><th>Điểm</th></tr></thead>
+              <tbody>
+                {r.tasks.map((t) => (
+                  <tr key={t.taskId}>
+                    <td>{t.title}</td><td>{t.milestoneTitle}</td><td>{status[t.status] || t.status}</td>
+                    <td>{t.weight}</td><td>{t.difficulty}</td><td>{t.workloadHours}</td><td>{fmtDate(t.dueDate)}</td>
+                    <td>{t.onTime === null ? '—' : t.onTime ? <Badge kind="good">Đúng hạn</Badge> : <Badge kind="bad">Trễ</Badge>}</td>
+                    <td>{t.revisions}</td><td>{t.qualityRating ? `${t.qualityRating}/5` : '—'}</td><td>{t.status === 'DONE' ? t.points : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {r.tasks.length === 0 && <p className="muted small">Chưa được giao task nào.</p>}
+          </td>
+        </tr>
+      )}
+    </>
   );
 }

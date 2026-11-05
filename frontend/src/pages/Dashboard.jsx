@@ -48,7 +48,7 @@ export default function Dashboard() {
             ))}
             {needAttention.length === 0 && <p className="muted">Chưa có nhóm nào được duyệt đề tài.</p>}
           </div>
-          <div className="chart-title">Tiến độ task theo từng nhóm (%)</div>
+          <div className="chart-title">Tiến độ theo trọng số task của từng nhóm (%)</div>
           <AreaChart values={rows.map((r) => r.percent)} labels={rows.map((r) => r.teamName)} />
         </div>
 
@@ -91,7 +91,7 @@ export default function Dashboard() {
       <div className="card flush">
         <div className="card-head pad"><h3>Danh sách nhóm</h3></div>
         <table className="table plain">
-          <thead><tr><th>Nhóm</th><th>Đề tài</th><th>Tiến độ task</th><th>Quá hạn chưa nộp</th><th>Nộp trễ</th><th>Tình trạng</th></tr></thead>
+          <thead><tr><th>Nhóm</th><th>Đề tài</th><th>Tiến độ (theo trọng số)</th><th>Quá hạn chưa nộp</th><th>Nộp trễ</th><th>Tình trạng</th></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.teamId}>

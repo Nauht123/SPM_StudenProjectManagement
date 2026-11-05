@@ -12,12 +12,14 @@ import vn.huflit.spm.repo.RegistrationRepository;
 import vn.huflit.spm.repo.SubmissionRepository;
 import vn.huflit.spm.repo.TaskRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * Milestone hai cap:
  * - Milestone chinh (parent = null): do giang vien huong dan (hoac admin) quan ly, la dau moc nop bai.
  * - Milestone phu (parent != null): do nhom truong (hoac admin) quan ly, chua cac task cua thanh vien.
+ * Milestone da co du lieu lien quan (bai nop, milestone phu, task) khong bi xoa ma duoc luu tru (archive).
  */
 @Service
 public class MilestoneService {
@@ -70,6 +72,9 @@ public class MilestoneService {
             if (parent.getParent() != null) {
                 throw ApiException.badRequest("Chỉ được tạo milestone phụ dưới một milestone chính");
             }
+            if (parent.isArchived()) {
+                throw ApiException.conflict("Milestone chính đã được lưu trữ, không thể thêm milestone phụ");
+            }
             access.requireLeaderOrAdmin(team);
             if (req.dueDate().isAfter(parent.getDueDate())) {
                 throw ApiException.badRequest("Hạn milestone phụ không được sau hạn milestone chính ("
@@ -94,6 +99,7 @@ public class MilestoneService {
     @Transactional
     public MilestoneDto update(Long id, MilestoneRequest req) {
         Milestone m = find(id);
+        requireNotArchived(m);
         if (m.getParent() == null) {
             access.requireSupervisorOrAdmin(m.getTeam());
             boolean childAfter = milestones.findByParentId(id).stream()
@@ -114,23 +120,74 @@ public class MilestoneService {
         return mapper.milestone(milestones.save(m));
     }
 
+    /** Chi xoa han milestone chua co du lieu; neu da co bai nop / milestone phu / task thi phai luu tru. */
     @Transactional
     public void delete(Long id) {
         Milestone m = find(id);
+        requireOwner(m);
         if (m.getParent() == null) {
-            access.requireSupervisorOrAdmin(m.getTeam());
-            if (submissions.countByMilestoneId(id) > 0) {
-                throw ApiException.conflict("Milestone đã có bài nộp, không thể xóa");
+            if (submissions.countByMilestoneId(id) > 0 || milestones.countByParentId(id) > 0) {
+                throw ApiException.conflict("Milestone đã có bài nộp hoặc milestone phụ, hãy lưu trữ (Archive) thay vì xóa");
             }
-            for (Milestone child : milestones.findByParentId(id)) {
-                tasks.deleteByMilestoneId(child.getId());
-                milestones.delete(child);
-            }
-        } else {
-            access.requireLeaderOrAdmin(m.getTeam());
-            tasks.deleteByMilestoneId(id);
+        } else if (tasks.countByMilestoneId(id) > 0) {
+            throw ApiException.conflict("Milestone phụ đã có task, hãy lưu trữ (Archive) thay vì xóa");
         }
         milestones.delete(m);
+    }
+
+    /** Luu tru milestone (kem cac milestone phu neu la milestone chinh): chi doc, khong tinh vao tien do. */
+    @Transactional
+    public MilestoneDto archive(Long id) {
+        Milestone m = find(id);
+        requireOwner(m);
+        if (m.isArchived()) {
+            throw ApiException.conflict("Milestone đã được lưu trữ");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        m.setArchived(true);
+        m.setArchivedAt(now);
+        milestones.save(m);
+        if (m.getParent() == null) {
+            for (Milestone child : milestones.findByParentId(id)) {
+                if (!child.isArchived()) {
+                    child.setArchived(true);
+                    child.setArchivedAt(now);
+                    milestones.save(child);
+                }
+            }
+        }
+        notifications.notifyTeam(m.getTeam(), "Milestone \"" + m.getTitle() + "\" đã được lưu trữ", access.current());
+        return mapper.milestone(m);
+    }
+
+    @Transactional
+    public MilestoneDto restore(Long id) {
+        Milestone m = find(id);
+        requireOwner(m);
+        if (!m.isArchived()) {
+            throw ApiException.conflict("Milestone chưa được lưu trữ");
+        }
+        if (m.getParent() != null && m.getParent().isArchived()) {
+            throw ApiException.conflict("Hãy khôi phục milestone chính trước");
+        }
+        m.setArchived(false);
+        m.setArchivedAt(null);
+        return mapper.milestone(milestones.save(m));
+    }
+
+    /** Milestone chinh: giang vien huong dan/admin; milestone phu: nhom truong/admin. */
+    private void requireOwner(Milestone m) {
+        if (m.getParent() == null) {
+            access.requireSupervisorOrAdmin(m.getTeam());
+        } else {
+            access.requireLeaderOrAdmin(m.getTeam());
+        }
+    }
+
+    private void requireNotArchived(Milestone m) {
+        if (m.isArchived()) {
+            throw ApiException.conflict("Milestone đã được lưu trữ, hãy khôi phục trước khi chỉnh sửa");
+        }
     }
 
     private Milestone find(Long id) {

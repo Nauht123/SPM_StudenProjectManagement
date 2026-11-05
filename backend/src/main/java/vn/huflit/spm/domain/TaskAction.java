@@ -1,0 +1,7 @@
+package vn.huflit.spm.domain;
+
+/** Cac loai su kien ghi vao TaskHistory. */
+public enum TaskAction {
+    CREATED, SUGGESTED, SUGGESTION_APPROVED, SUGGESTION_REJECTED, UPDATED, ASSIGNED, UNASSIGNED,
+    STARTED, SUBMITTED, CONFIRMED, REVISION_REQUESTED, CANCELLED
+}

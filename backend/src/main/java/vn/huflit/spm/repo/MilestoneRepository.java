@@ -11,4 +11,6 @@ public interface MilestoneRepository extends JpaRepository<Milestone, Long> {
     List<Milestone> findByParentId(Long parentId);
 
     long countByParentId(Long parentId);
+
+    long countByParentIdAndArchivedFalse(Long parentId);
 }

@@ -12,6 +12,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     long countByMilestoneId(Long milestoneId);
 
+    List<Submission> findByMilestoneTeamId(Long teamId);
+
     long countByMilestoneTeamIdAndLateTrue(Long teamId);
 
     @Query("select coalesce(max(s.version), 0) from Submission s where s.milestone.id = :milestoneId")

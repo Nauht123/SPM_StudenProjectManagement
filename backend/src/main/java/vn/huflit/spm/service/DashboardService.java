@@ -41,18 +41,22 @@ public class DashboardService {
                 .toList();
     }
 
+    /** Tien do tinh theo trong so Task (task bi huy / de xuat chua duyet / milestone luu tru khong tinh). */
     private ProgressDto compute(Team team) {
-        long total = tasks.countByMilestoneTeamId(team.getId());
-        long done = tasks.countByMilestoneTeamIdAndStatus(team.getId(), TaskStatus.DONE);
-        int percent = total == 0 ? 0 : (int) Math.round(done * 100.0 / total);
+        long total = tasks.countInTeam(team.getId(), TaskStatus.ACTIVE);
+        long done = tasks.countInTeam(team.getId(), List.of(TaskStatus.DONE));
+        long totalWeight = tasks.weightInTeam(team.getId(), TaskStatus.ACTIVE);
+        long doneWeight = tasks.weightInTeam(team.getId(), List.of(TaskStatus.DONE));
+        int percent = Mapper.weightedPercent(doneWeight, totalWeight);
         long overdue = milestones.findByTeamIdOrderByDueDateAsc(team.getId()).stream()
-                .filter(m -> m.getParent() == null && m.getDueDate().isBefore(LocalDate.now())
+                .filter(m -> m.getParent() == null && !m.isArchived() && m.getDueDate().isBefore(LocalDate.now())
                         && submissions.countByMilestoneId(m.getId()) == 0)
                 .count();
         long late = submissions.countByMilestoneTeamIdAndLateTrue(team.getId());
         String topicTitle = registrations.findFirstByTeamIdAndStatus(team.getId(), RegStatus.APPROVED)
                 .map(r -> r.getTopic().getTitle()).orElse(null);
         boolean atRisk = overdue > 0;
-        return new ProgressDto(team.getId(), team.getName(), topicTitle, total, done, percent, overdue, late, atRisk);
+        return new ProgressDto(team.getId(), team.getName(), topicTitle, total, done, percent, overdue, late, atRisk,
+                totalWeight, doneWeight);
     }
 }

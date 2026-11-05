@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.huflit.spm.dto.Dtos.*;
+import vn.huflit.spm.service.ContributionService;
 import vn.huflit.spm.service.DashboardService;
 import vn.huflit.spm.service.TeamService;
 
@@ -15,10 +16,12 @@ import java.util.List;
 public class TeamController {
     private final TeamService teams;
     private final DashboardService dashboard;
+    private final ContributionService contributions;
 
-    public TeamController(TeamService teams, DashboardService dashboard) {
+    public TeamController(TeamService teams, DashboardService dashboard, ContributionService contributions) {
         this.teams = teams;
         this.dashboard = dashboard;
+        this.contributions = contributions;
     }
 
     @GetMapping("/teams/me")
@@ -59,6 +62,12 @@ public class TeamController {
     @GetMapping("/teams/{id}/progress")
     public ProgressDto progress(@PathVariable Long id) {
         return dashboard.teamProgress(id);
+    }
+
+    /** Dong gop ca nhan: giang vien/admin/nhom truong xem ca nhom, thanh vien chi xem cua minh. */
+    @GetMapping("/teams/{id}/contributions")
+    public ContributionReportDto contributions(@PathVariable Long id) {
+        return contributions.report(id);
     }
 
     @GetMapping("/dashboard/teams")

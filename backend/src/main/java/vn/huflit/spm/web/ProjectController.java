@@ -16,6 +16,7 @@ import vn.huflit.spm.service.NotificationService;
 import vn.huflit.spm.service.SubmissionService;
 import vn.huflit.spm.service.TaskService;
 import vn.huflit.spm.domain.Task;
+import vn.huflit.spm.domain.TaskSubmissionHistory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -64,6 +65,16 @@ public class ProjectController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/milestones/{id}/archive")
+    public MilestoneDto archiveMilestone(@PathVariable Long id) {
+        return milestones.archive(id);
+    }
+
+    @PostMapping("/milestones/{id}/restore")
+    public MilestoneDto restoreMilestone(@PathVariable Long id) {
+        return milestones.restore(id);
+    }
+
     // ----- task (nam trong milestone phu) -----
     @GetMapping("/milestones/{id}/tasks")
     public List<TaskDto> listTasks(@PathVariable Long id) {
@@ -74,6 +85,47 @@ public class ProjectController {
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     public TaskDto createTask(@PathVariable Long id, @Valid @RequestBody TaskRequest req) {
         return taskService.create(id, req);
+    }
+
+    /** Thanh vien de xuat task moi, cho nhom truong duyet. */
+    @PostMapping("/milestones/{id}/tasks/suggest")
+    @PreAuthorize("hasRole('STUDENT')")
+    public TaskDto suggestTask(@PathVariable Long id, @Valid @RequestBody TaskSuggestionRequest req) {
+        return taskService.suggest(id, req);
+    }
+
+    @PostMapping("/tasks/{id}/approve-suggestion")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    public TaskDto approveSuggestion(@PathVariable Long id, @Valid @RequestBody ApproveSuggestionRequest req) {
+        return taskService.approveSuggestion(id, req);
+    }
+
+    @PostMapping("/tasks/{id}/reject-suggestion")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    public TaskDto rejectSuggestion(@PathVariable Long id, @Valid @RequestBody ReviewRequest req) {
+        return taskService.rejectSuggestion(id, req.note());
+    }
+
+    @PostMapping("/tasks/{id}/cancel")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    public TaskDto cancelTask(@PathVariable Long id, @Valid @RequestBody ReviewRequest req) {
+        return taskService.cancel(id, req.note());
+    }
+
+    @GetMapping("/tasks/{id}/history")
+    public TaskTimelineDto taskHistory(@PathVariable Long id) {
+        return taskService.timeline(id);
+    }
+
+    @GetMapping("/task-submissions/{id}/download")
+    public ResponseEntity<Resource> downloadTaskAttempt(@PathVariable Long id) {
+        TaskSubmissionHistory a = taskService.getAttemptForDownload(id);
+        Resource resource = taskService.loadAttempt(a);
+        ContentDisposition cd = ContentDisposition.attachment().filename(a.getFileName(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, cd.toString())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
     }
 
     @PutMapping("/tasks/{id}")
@@ -105,8 +157,8 @@ public class ProjectController {
 
     @PostMapping("/tasks/{id}/confirm")
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
-    public TaskDto confirmTask(@PathVariable Long id) {
-        return taskService.confirm(id);
+    public TaskDto confirmTask(@PathVariable Long id, @Valid @RequestBody(required = false) ConfirmRequest req) {
+        return taskService.confirm(id, req == null ? null : req.qualityRating());
     }
 
     @PostMapping("/tasks/{id}/reject")
@@ -135,8 +187,9 @@ public class ProjectController {
     @PostMapping(value = "/milestones/{id}/submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('STUDENT')")
     public SubmissionDto submit(@PathVariable Long id, @RequestPart("file") MultipartFile file,
-                                @RequestParam(value = "note", required = false) String note) {
-        return submissions.submit(id, file, note);
+                                @RequestParam(value = "note", required = false) String note,
+                                @RequestParam(value = "contributorIds", required = false) List<Long> contributorIds) {
+        return submissions.submit(id, file, note, contributorIds);
     }
 
     @GetMapping("/submissions/{id}/download")

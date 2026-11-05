@@ -38,4 +38,10 @@ public class Milestone {
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Luu tru (Archive) thay cho xoa khi milestone da co du lieu lien quan. Milestone luu tru chi doc, khong tinh vao tien do. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean archived = false;
+
+    private LocalDateTime archivedAt;
 }

@@ -9,9 +9,9 @@
 
 | Vai trò | Chức năng |
 | --- | --- |
-| Sinh viên – thành viên | Đăng ký tài khoản; xem milestone, bảng công việc; **thực hiện task được giao**: bắt đầu làm, báo hoàn thành (kèm file/ghi chú tùy chọn); nộp bài cho milestone chính; xem phản hồi; nhận thông báo |
-| Sinh viên – nhóm trưởng | Mọi quyền của thành viên và: tạo nhóm, thêm/xóa thành viên theo MSSV (tối đa 5); đăng ký/hủy đăng ký đề tài; **tạo milestone phụ**; **thêm/sửa/xóa/giao task** (chỉ nhóm trưởng và admin); **xác nhận** task hoàn thành hoặc **yêu cầu sửa** |
-| Giảng viên | Tạo/sửa/đóng/xóa đề tài; duyệt/từ chối đăng ký; **tạo và quản lý milestone chính** của nhóm mình hướng dẫn; xem và tải bài nộp; phản hồi theo từng bài nộp; dashboard tiến độ các nhóm. **Không được thêm hoặc sửa task** |
+| Sinh viên – thành viên | Đăng ký tài khoản; xem milestone, bảng công việc; **thực hiện task được giao**: bắt đầu làm, báo hoàn thành (kèm file/ghi chú tùy chọn); **đề xuất task mới** cho nhóm trưởng duyệt; nộp bài cho milestone chính và chọn những bạn thực sự đóng góp; xem lịch sử task, đóng góp cá nhân và phản hồi; nhận thông báo |
+| Sinh viên – nhóm trưởng | Mọi quyền của thành viên và: tạo nhóm, thêm/xóa thành viên theo MSSV (tối đa 5); đăng ký/hủy đăng ký đề tài; **tạo milestone phụ**; **thêm/sửa/giao/hủy task** kèm độ khó, trọng số, khối lượng (chỉ nhóm trưởng và admin); **duyệt hoặc từ chối đề xuất task**; **xác nhận** task hoàn thành (có thể chấm chất lượng 1–5) hoặc **yêu cầu sửa**; xem đóng góp của cả nhóm; lưu trữ (archive) milestone phụ |
+| Giảng viên | Tạo/sửa/đóng/xóa đề tài; duyệt/từ chối đăng ký; **tạo và quản lý milestone chính** của nhóm mình hướng dẫn; xem và tải bài nộp (kèm người upload và người đóng góp); phản hồi theo từng bài nộp; dashboard tiến độ các nhóm; **xem đóng góp cá nhân và lịch sử task** của từng thành viên; lưu trữ milestone chính. **Không được thêm hoặc sửa task** |
 | Quản trị viên | Tạo tài khoản; xem tổng quan; có quyền ghi đè trong nhóm (milestone chính/phụ, task) |
 
 ### Phân cấp milestone và luồng task
@@ -28,6 +28,17 @@ Bảng công việc có 4 cột: **Cần làm → Đang làm → Chờ xác nh�
 1. Thành viên được giao bấm *Bắt đầu làm* (Cần làm → Đang làm).
 2. Thành viên bấm *Báo hoàn thành*, có thể đính kèm file hoặc ghi chú kết quả; hệ thống ghi lại ngày giờ nộp gần nhất (Đang làm → Chờ xác nhận) và thông báo cho nhóm trưởng.
 3. Nhóm trưởng bấm *Xác nhận* (→ Hoàn thành) hoặc *Yêu cầu sửa* kèm nội dung (→ Đang làm, thành viên thấy lý do và nộp lại).
+
+### Task nâng cao (giai đoạn 1)
+
+- **Trọng số Task:** mỗi task có *độ khó* (1–5), *trọng số* (1–10) và *khối lượng ước tính* (giờ). Tiến độ nhóm / milestone được tính **theo trọng số** (tổng trọng số task đã xong ÷ tổng trọng số task còn hiệu lực), không còn chỉ đếm số task. Task bị hủy, đề xuất chưa duyệt và milestone đã lưu trữ không tính vào tiến độ.
+- **Đề xuất task:** thành viên gửi đề xuất (trạng thái *SUGGESTED*), nhóm trưởng nhận thông báo, duyệt (chốt người giao, trọng số, độ khó, hạn → *Cần làm*) hoặc từ chối kèm lý do. Người đề xuất có thể rút lại.
+- **Lịch sử Task:** mọi thay đổi (tạo, sửa từng trường, giao/đổi người, bắt đầu, báo hoàn thành, xác nhận, yêu cầu sửa, hủy) ghi vào `task_history`; mỗi lần phân công lưu người giao – người được giao – thời điểm (`task_assignment_history`); **mỗi lần báo hoàn thành là một bản ghi** (`task_submission_history`, kèm file/ghi chú, kết quả duyệt và số lần bị yêu cầu sửa), không chỉ lần cuối.
+- **Hủy thay vì xóa:** task đã giao hoặc đã có hoạt động chỉ được *hủy* (trạng thái *CANCELLED*, giữ lịch sử, báo cho người thực hiện). Chỉ task chưa giao, chưa làm mới xóa hẳn được. Milestone đã có bài nộp / milestone phụ / task được *lưu trữ (archive)*, chỉ xem, có thể khôi phục.
+- **Người upload ≠ người đóng góp:** khi nộp bài milestone chính, chọn những thành viên thực sự tham gia (`submission_contributors`); người upload luôn được ghi nhận. Điểm đóng góp không dựa vào người upload.
+- **Đóng góp cá nhân** (`GET /api/teams/{id}/contributions`): số task giao/xong/đúng hạn/trễ hạn/chưa xong, số lần bị yêu cầu sửa, tiến độ cá nhân theo trọng số, số bài nộp upload/đóng góp và **điểm đóng góp**. Giảng viên hướng dẫn, admin và nhóm trưởng xem cả nhóm; thành viên chỉ xem của mình.
+
+Điểm một task đã được xác nhận = `trọng số × (0.7 + 0.1×độ khó) × (0.5 + 0.1×điểm chất lượng, chưa chấm = 1.0) × (1.0 đúng hạn / 0.9 trễ) × max(0.7, 1 − 0.05×số lần bị yêu cầu sửa)`. Điểm cá nhân là tổng điểm các task đã xong; tỷ lệ đóng góp = điểm cá nhân ÷ tổng điểm nhóm. Task chưa xong, bị hủy hoặc mới chỉ là đề xuất không có điểm.
 
 Quy tắc nghiệp vụ chính: mỗi sinh viên chỉ thuộc một nhóm; mỗi nhóm chỉ có một đăng ký đang chờ/đã duyệt; đề tài không nhận quá số nhóm tối đa; nhóm được duyệt thì khóa danh sách thành viên và mới tạo được milestone; task chỉ nằm trong milestone phụ; hạn milestone phụ/task không được sau hạn của cấp trên; bài nộp chỉ gắn với milestone chính; bài nộp sau 24:00 của ngày hạn bị đánh dấu trễ; mỗi lần nộp tạo một phiên bản mới.
 
@@ -77,10 +88,11 @@ Client–Server, backend phân lớp: `web` (REST controller) → `service` (ngh
 backend/src/main/java/vn/huflit/spm
 ├── config/    SecurityConfig, DataSeeder
 ├── security/  JwtService, JwtAuthFilter
-├── domain/    Entity + enum (User, Topic, Team, Registration, Milestone, Task, Submission, Feedback, Notification)
+├── domain/    Entity + enum (User, Topic, Team, Registration, Milestone, Task, Submission, Feedback, Notification,
+│              TaskHistory, TaskAssignmentHistory, TaskSubmissionHistory, SubmissionContributor)
 ├── repo/      Spring Data repositories
 ├── dto/       Request/Response DTO
-├── service/   Auth, Topic, Team, Registration, Milestone, Task, Submission(+Feedback), Dashboard, Notification, AccessService, FileStorage
+├── service/   Auth, Topic, Team, Registration, Milestone, Task, Submission(+Feedback), Contribution, Dashboard, Notification, AccessService, FileStorage
 └── web/       Controller + GlobalExceptionHandler
 frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 ```
@@ -94,19 +106,21 @@ frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 | Đề tài | `GET /api/topics`, `GET /api/topics/mine`, `POST/PUT/DELETE /api/topics[/{id}]` |
 | Đăng ký | `POST /api/registrations`, `DELETE /api/registrations/{id}`, `GET /api/registrations/mine`, `GET /api/registrations/lecturer`, `POST /api/registrations/{id}/decision` |
 | Nhóm | `GET /api/teams/me`, `GET /api/teams`, `GET /api/teams/{id}`, `POST /api/teams`, `POST /api/teams/{id}/members`, `DELETE /api/teams/{id}/members/{userId}`, `GET /api/teams/{id}/progress`, `GET /api/dashboard/teams` |
-| Milestone | `GET/POST /api/teams/{id}/milestones` (body có `parentId` = null: milestone chính, khác null: milestone phụ), `GET/PUT/DELETE /api/milestones/{id}` |
-| Task | `GET/POST /api/milestones/{id}/tasks`, `PUT/DELETE /api/tasks/{id}`, `POST /api/tasks/{id}/start`, `POST /api/tasks/{id}/submit` (multipart, file/note tùy chọn), `POST /api/tasks/{id}/confirm`, `POST /api/tasks/{id}/reject`, `GET /api/tasks/{id}/result` |
-| Bài nộp / phản hồi | `GET/POST /api/milestones/{id}/submissions` (multipart), `GET /api/submissions/{id}/download`, `GET/POST /api/submissions/{id}/feedback` |
+| Milestone | `GET/POST /api/teams/{id}/milestones` (body có `parentId` = null: milestone chính, khác null: milestone phụ), `GET/PUT/DELETE /api/milestones/{id}` (xóa chỉ khi chưa có dữ liệu), `POST /api/milestones/{id}/archive`, `POST /api/milestones/{id}/restore` |
+| Task | `GET/POST /api/milestones/{id}/tasks` (body có `difficulty`, `weight`, `workloadHours`), `POST /api/milestones/{id}/tasks/suggest`, `PUT/DELETE /api/tasks/{id}`, `POST /api/tasks/{id}/approve-suggestion`, `/reject-suggestion`, `/cancel`, `/start`, `POST /api/tasks/{id}/submit` (multipart, file/note tùy chọn), `POST /api/tasks/{id}/confirm` (body tùy chọn `qualityRating`), `POST /api/tasks/{id}/reject`, `GET /api/tasks/{id}/result`, `GET /api/tasks/{id}/history`, `GET /api/task-submissions/{id}/download` |
+| Đóng góp | `GET /api/teams/{id}/contributions` |
+| Bài nộp / phản hồi | `GET/POST /api/milestones/{id}/submissions` (multipart, có thể kèm nhiều `contributorIds`), `GET /api/submissions/{id}/download`, `GET/POST /api/submissions/{id}/feedback` |
 | Thông báo | `GET /api/notifications`, `GET /api/notifications/unread-count`, `POST /api/notifications/{id}/read`, `POST /api/notifications/read-all` |
 
 ## Kiểm thử
 
-Unit test (JUnit 5 + Mockito) trong `backend/src/test`: quy tắc nộp trễ, quy tắc đăng ký đề tài (đủ nhóm, đề tài đóng), luồng task (báo hoàn thành, xác nhận, yêu cầu sửa, ràng buộc hạn) và phân quyền (giảng viên không được quản lý task). CI (`.github/workflows/ci.yml`) chạy `mvn verify` và `npm run build` cho mỗi push/PR.
+Unit test (JUnit 5 + Mockito) trong `backend/src/test`: quy tắc nộp trễ, quy tắc đăng ký đề tài (đủ nhóm, đề tài đóng), luồng task (báo hoàn thành, xác nhận, yêu cầu sửa, ràng buộc hạn), lịch sử task / phân công / từng lần nộp, đề xuất và duyệt task, hủy task, lưu trữ milestone, người đóng góp bài nộp, công thức điểm đóng góp và phân quyền (giảng viên không được quản lý task). CI (`.github/workflows/ci.yml`) chạy `mvn verify` và `npm run build` cho mỗi push/PR.
 
 ## Hạn chế đã biết (technical debt)
 
 - Quan hệ `@ManyToOne`/`@ManyToMany` đang dùng EAGER để đơn giản hóa; cần chuyển sang LAZY + fetch join khi dữ liệu lớn.
 - Thêm thành viên bằng MSSV (không có bước mời/chấp nhận); thông báo chỉ trong ứng dụng (không email) và được cập nhật bằng polling 30 giây.
 - File nộp lưu trên đĩa của server (volume Docker), chưa dùng object storage; chưa quét virus/giới hạn loại file.
-- Schema do Hibernate `ddl-auto=update` tạo, chưa dùng công cụ migration (Flyway/Liquibase).
+- Schema do Hibernate `ddl-auto=update` tạo, chưa dùng công cụ migration (Flyway/Liquibase). Các cột mới của `tasks`/`milestones` có giá trị mặc định nên CSDL cũ tự nâng cấp được; task cũ nhận độ khó 3, trọng số 3, khối lượng 4h.
+- Điểm đóng góp tính tại thời điểm xem (không lưu bảng `ContributionScore`); chưa có đánh giá chéo, chấm điểm rubric, điều chỉnh điểm của giảng viên và lịch sử thay đổi thành viên nhóm (giai đoạn sau).
 - Chưa có integration test và test giao diện tự động.

@@ -37,4 +37,6 @@ export async function downloadFile(url, fileName) {
 export const downloadSubmission = (sub) => downloadFile(`/submissions/${sub.id}/download`, sub.fileName);
 export const downloadTaskResult = (task) => downloadFile(`/tasks/${task.id}/result`, task.resultFileName);
 
+export const downloadTaskAttempt = (attempt) => downloadFile(`/task-submissions/${attempt.id}/download`, attempt.fileName);
+
 export default api;
