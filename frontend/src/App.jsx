@@ -9,12 +9,18 @@ import MyTopics from './pages/MyTopics.jsx';
 import Registrations from './pages/Registrations.jsx';
 import TeamPage from './pages/TeamPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Contributions from './pages/Contributions.jsx';
+import TeamContributions from './pages/TeamContributions.jsx';
+import MemberContribution from './pages/MemberContribution.jsx';
 import TeamDetail from './pages/TeamDetail.jsx';
 import MilestoneDetail from './pages/MilestoneDetail.jsx';
 import Notifications from './pages/Notifications.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 
 const PAGE_INFO = [
+  [(p) => /^\/teams\/\d+\/members\//.test(p), 'Đóng góp cá nhân', 'Điểm, deadline, sửa lại và lịch sử nộp của thành viên'],
+  [(p) => /^\/teams\/\d+\/contributions/.test(p), 'Đóng góp cá nhân', 'So sánh đóng góp các thành viên trong nhóm'],
+  ['/contributions', 'Đóng góp cá nhân', 'Đóng góp, đúng hạn/trễ hạn và sửa lại theo từng nhóm'],
   ['/teams/', 'Không gian làm việc nhóm', 'Milestone, tiến độ và bài nộp'],
   ['/team', 'Nhóm của tôi', 'Quản lý nhóm, thành viên và đề tài đăng ký'],
   ['/topics', 'Danh sách đề tài', 'Tìm và đăng ký đề tài đồ án'],
@@ -44,13 +50,13 @@ function Layout({ children }) {
   if (user.role === 'STUDENT') {
     menu.push(['/team', 'Nhóm của tôi', 'users'], ['/topics', 'Đề tài', 'book']);
   } else if (user.role === 'LECTURER') {
-    menu.push(['/dashboard', 'Tiến độ các nhóm', 'grid'], ['/my-topics', 'Đề tài của tôi', 'book'], ['/registrations', 'Đăng ký đề tài', 'check']);
+    menu.push(['/dashboard', 'Tiến độ các nhóm', 'grid'], ['/contributions', 'Đóng góp cá nhân', 'trend'], ['/my-topics', 'Đề tài của tôi', 'book'], ['/registrations', 'Đăng ký đề tài', 'check']);
   } else {
-    menu.push(['/dashboard', 'Tổng quan', 'grid'], ['/admin/users', 'Người dùng', 'user'], ['/topics', 'Đề tài', 'book']);
+    menu.push(['/dashboard', 'Tổng quan', 'grid'], ['/contributions', 'Đóng góp cá nhân', 'trend'], ['/admin/users', 'Người dùng', 'user'], ['/topics', 'Đề tài', 'book']);
   }
   menu.push(['/notifications', 'Thông báo', 'bell', unread]);
 
-  const info = PAGE_INFO.find(([prefix]) => pathname.startsWith(prefix)) || PAGE_INFO[0];
+  const info = PAGE_INFO.find(([m]) => (typeof m === 'function' ? m(pathname) : pathname.startsWith(m))) || PAGE_INFO[0];
   const initials = user.fullName.split(' ').slice(-2).map((w) => w[0]).join('').toUpperCase();
 
   return (
@@ -126,6 +132,9 @@ export default function App() {
       <Route path="/my-topics" element={<Protected roles={['LECTURER']}><MyTopics /></Protected>} />
       <Route path="/registrations" element={<Protected roles={['LECTURER']}><Registrations /></Protected>} />
       <Route path="/dashboard" element={<Protected roles={['LECTURER', 'ADMIN']}><Dashboard /></Protected>} />
+      <Route path="/contributions" element={<Protected roles={['LECTURER', 'ADMIN']}><Contributions /></Protected>} />
+      <Route path="/teams/:teamId/contributions" element={<Protected><TeamContributions /></Protected>} />
+      <Route path="/teams/:teamId/members/:userId" element={<Protected><MemberContribution /></Protected>} />
       <Route path="/teams/:teamId" element={<Protected><TeamDetail /></Protected>} />
       <Route path="/milestones/:id" element={<Protected><MilestoneDetail /></Protected>} />
       <Route path="/notifications" element={<Protected><Notifications /></Protected>} />

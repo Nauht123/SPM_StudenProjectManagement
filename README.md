@@ -42,6 +42,13 @@ Bảng công việc có 4 cột: **Cần làm → Đang làm → Chờ xác nh�
 
 Quy tắc nghiệp vụ chính: mỗi sinh viên chỉ thuộc một nhóm; mỗi nhóm chỉ có một đăng ký đang chờ/đã duyệt; đề tài không nhận quá số nhóm tối đa; nhóm được duyệt thì khóa danh sách thành viên và mới tạo được milestone; task chỉ nằm trong milestone phụ; hạn milestone phụ/task không được sau hạn của cấp trên; bài nộp chỉ gắn với milestone chính; bài nộp sau 24:00 của ngày hạn bị đánh dấu trễ; mỗi lần nộp tạo một phiên bản mới.
 
+### Dashboard đóng góp (giai đoạn 2)
+
+- **Dashboard giảng viên** (`/dashboard`): so sánh các nhóm — tiến độ theo trọng số, task hoàn thành đúng hạn/trễ hạn, task quá hạn chưa xong, số lần sửa lại, mục **Cần chú ý** (thành viên chưa được giao task, đóng góp quá thấp hoặc tập trung vào một người, bị yêu cầu sửa từ 3 lần, task quá hạn).
+- **Đóng góp cá nhân** (`/contributions`, giảng viên/admin): từng nhóm một bảng so sánh thành viên (điểm, tỷ lệ, đúng hạn, trễ hạn, chưa xong, sửa lại, tiến độ cá nhân). Trang nhóm `/teams/{id}/contributions` hiển thị riêng một nhóm; trang chi tiết nhóm chỉ giữ phần tóm tắt và liên kết sang đây để không trùng thống kê.
+- **Chi tiết thành viên** (`/teams/{id}/members/{userId}`): điểm và tỷ lệ đóng góp, biểu đồ đúng hạn/trễ hạn/quá hạn chưa xong, danh sách task kèm trọng số, độ khó, chất lượng, điểm; **theo dõi sửa lại** (mỗi lần bị yêu cầu sửa: task, lần nộp, người duyệt, nội dung); **lịch sử nộp cá nhân** (báo hoàn thành task và bài nộp milestone mà thành viên upload hoặc đóng góp, kèm kết quả duyệt và đúng/trễ hạn).
+- **Xuất báo cáo:** Excel (.xlsx) cho cả nhóm hoặc từng cá nhân, và nút *In / Lưu PDF* (in trang báo cáo ra PDF bằng trình duyệt). Chỉ giảng viên hướng dẫn, nhóm trưởng và admin được xuất; thành viên chỉ xem phần của mình.
+
 ## Chạy nhanh bằng Docker
 
 ```bash
@@ -108,13 +115,13 @@ frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 | Nhóm | `GET /api/teams/me`, `GET /api/teams`, `GET /api/teams/{id}`, `POST /api/teams`, `POST /api/teams/{id}/members`, `DELETE /api/teams/{id}/members/{userId}`, `GET /api/teams/{id}/progress`, `GET /api/dashboard/teams` |
 | Milestone | `GET/POST /api/teams/{id}/milestones` (body có `parentId` = null: milestone chính, khác null: milestone phụ), `GET/PUT/DELETE /api/milestones/{id}` (xóa chỉ khi chưa có dữ liệu), `POST /api/milestones/{id}/archive`, `POST /api/milestones/{id}/restore` |
 | Task | `GET/POST /api/milestones/{id}/tasks` (body có `difficulty`, `weight`, `workloadHours`), `POST /api/milestones/{id}/tasks/suggest`, `PUT/DELETE /api/tasks/{id}`, `POST /api/tasks/{id}/approve-suggestion`, `/reject-suggestion`, `/cancel`, `/start`, `POST /api/tasks/{id}/submit` (multipart, file/note tùy chọn), `POST /api/tasks/{id}/confirm` (body tùy chọn `qualityRating`), `POST /api/tasks/{id}/reject`, `GET /api/tasks/{id}/result`, `GET /api/tasks/{id}/history`, `GET /api/task-submissions/{id}/download` |
-| Đóng góp | `GET /api/teams/{id}/contributions` |
+| Đóng góp | `GET /api/teams/{id}/contributions`, `GET /api/dashboard/contributions` (tổng hợp theo nhóm + cảnh báo, giảng viên/admin), `GET /api/teams/{id}/members/{userId}/contribution` (chi tiết, sửa lại, lịch sử nộp), `GET /api/teams/{id}/contributions/export` và `GET /api/teams/{id}/members/{userId}/report` (Excel) |
 | Bài nộp / phản hồi | `GET/POST /api/milestones/{id}/submissions` (multipart, có thể kèm nhiều `contributorIds`), `GET /api/submissions/{id}/download`, `GET/POST /api/submissions/{id}/feedback` |
 | Thông báo | `GET /api/notifications`, `GET /api/notifications/unread-count`, `POST /api/notifications/{id}/read`, `POST /api/notifications/read-all` |
 
 ## Kiểm thử
 
-Unit test (JUnit 5 + Mockito) trong `backend/src/test`: quy tắc nộp trễ, quy tắc đăng ký đề tài (đủ nhóm, đề tài đóng), luồng task (báo hoàn thành, xác nhận, yêu cầu sửa, ràng buộc hạn), lịch sử task / phân công / từng lần nộp, đề xuất và duyệt task, hủy task, lưu trữ milestone, người đóng góp bài nộp, công thức điểm đóng góp và phân quyền (giảng viên không được quản lý task). CI (`.github/workflows/ci.yml`) chạy `mvn verify` và `npm run build` cho mỗi push/PR.
+Unit test (JUnit 5 + Mockito) trong `backend/src/test`: quy tắc nộp trễ, quy tắc đăng ký đề tài (đủ nhóm, đề tài đóng), luồng task (báo hoàn thành, xác nhận, yêu cầu sửa, ràng buộc hạn), lịch sử task / phân công / từng lần nộp, đề xuất và duyệt task, hủy task, lưu trữ milestone, người đóng góp bài nộp, công thức điểm đóng góp, dashboard đóng góp (cảnh báo, phân quyền xem/xuất báo cáo, theo dõi sửa lại, lịch sử nộp cá nhân), file Excel xuất ra và phân quyền (giảng viên không được quản lý task). CI (`.github/workflows/ci.yml`) chạy `mvn verify` và `npm run build` cho mỗi push/PR.
 
 ## Hạn chế đã biết (technical debt)
 

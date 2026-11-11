@@ -192,3 +192,34 @@ button.outline-danger:hover:not(:disabled) { background: #fdeaee; }
 .contrib-bar > div { height: 100%; background: #3f6ad8; }
 .table.contrib td, .table.contrib th { padding: 9px 10px; font-size: 13px; }
 .formula { margin-top: 10px; padding: 8px 10px; background: #f4f6fa; border-radius: 4px; }
+
+/* ---------- giai doan 2: dong gop ca nhan, deadline, in bao cao ---------- */
+.stackbar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: #e8edf3; }
+.stackbar .seg { height: 100%; }
+.stackbar .seg.empty { background: #e8edf3; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+.legend b { color: var(--heading); }
+.contrib-row { display: grid; grid-template-columns: 170px 1fr 150px; gap: 12px; align-items: center; padding: 5px 0; }
+.attention { margin: 0; padding-left: 18px; } .attention li { padding: 3px 0; }
+.flags { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 4px; }
+.team-kpi { margin-right: 6px; align-self: center; }
+.table.contrib td .small { margin-top: 2px; }
+.print-only { display: none; }
+.report-title h1 { margin: 0 0 4px; font-size: 22px; }
+@media print {
+  .topbar, .sidebar, .page-header, .no-print { display: none !important; }
+  .print-only { display: block; margin-bottom: 14px; }
+  body { background: #fff; font-size: 12px; }
+  .body, .main { display: block; }
+  .content { max-width: none; padding: 0; margin: 0; }
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .stat-card { box-shadow: none; border: 1px solid #ccc; color: #111 !important; background: #fff !important; min-height: 0; padding: 10px; }
+  .stat-icon { display: none; }
+  .stat-note { border-top-color: #ccc; }
+  .table th, .table td { padding: 6px 8px; }
+  a { color: #111; text-decoration: none; }
+}
+@media (max-width: 1000px) { .contrib-row { grid-template-columns: 1fr; } }
+
+.table.contrib td.no-print { white-space: nowrap; }

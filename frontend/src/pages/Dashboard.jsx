@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api, { errMsg } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Alert, AreaChart, Badge, HBar, Icon, MiniBars, Progress, Sparkline, StatCard, TargetCard } from '../ui.jsx';
+import { rateText } from '../contribution.jsx';
 
 const pct = (a, b) => (b === 0 ? 0 : Math.round((a * 100) / b));
 const BAR_COLORS = ['#d92550', '#3ac47d', '#3f6ad8', '#f7b924'];
@@ -12,10 +13,12 @@ export default function Dashboard() {
   const [rows, setRows] = useState([]);
   const [topics, setTopics] = useState([]);
   const [pending, setPending] = useState(0);
+  const [contrib, setContrib] = useState([]); // tong hop dong gop / deadline theo nhom
   const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/dashboard/teams').then((r) => setRows(r.data)).catch((e) => setError(errMsg(e)));
+    api.get('/dashboard/contributions').then((r) => setContrib(r.data.teams)).catch(() => {});
     api.get('/topics').then((r) => setTopics(user.role === 'LECTURER' ? r.data.filter((t) => t.lecturer?.id === user.id) : r.data)).catch(() => {});
     if (user.role === 'LECTURER') {
       api.get('/registrations/lecturer').then((r) => setPending(r.data.filter((x) => x.status === 'PENDING').length)).catch(() => {});
@@ -30,6 +33,10 @@ export default function Dashboard() {
   const avg = rows.length ? Math.round(rows.reduce((s, r) => s + r.percent, 0) / rows.length) : 0;
   const slotsMax = topics.reduce((s, t) => s + t.maxGroups, 0);
   const slotsUsed = topics.reduce((s, t) => s + t.approvedGroups, 0);
+  const byTeam = Object.fromEntries(contrib.map((c) => [c.teamId, c]));
+  const doneTasksAll = contrib.reduce((a, c) => a + c.doneTasks, 0);
+  const onTimeAll = contrib.reduce((a, c) => a + c.onTimeTasks, 0);
+  const flags = contrib.flatMap((c) => c.flags.map((f) => ({ teamId: c.teamId, teamName: c.teamName, text: f })));
   const needAttention = [...rows].sort((a, b) => a.percent - b.percent).slice(0, 4);
 
   return (
@@ -84,25 +91,45 @@ export default function Dashboard() {
       <div className="targets">
         <TargetCard percent={pct(done, total)} label="Hoàn thành task" color="#d92550" />
         <TargetCard percent={pct(rows.length - atRisk, rows.length)} label="Nhóm đúng tiến độ" color="#3ac47d" />
-        <TargetCard percent={pct(rows.filter((r) => r.lateSubmissions === 0).length, rows.length)} label="Nhóm không nộp trễ" color="#f7b924" />
+        <TargetCard percent={pct(onTimeAll, doneTasksAll)} label="Task hoàn thành đúng hạn" color="#f7b924" />
         <TargetCard percent={pct(slotsUsed, slotsMax)} label="Suất đề tài đã có nhóm" color="#3f6ad8" />
       </div>
+
+      {flags.length > 0 && (
+        <div className="card">
+          <div className="card-head">
+            <h3>Cần chú ý</h3>
+            <Link className="btn" to="/contributions">Xem đóng góp cá nhân →</Link>
+          </div>
+          <ul className="attention">
+            {flags.slice(0, 8).map((f, i) => (
+              <li key={i}><Link to={`/teams/${f.teamId}/contributions`}>{f.teamName}</Link> — {f.text}</li>
+            ))}
+          </ul>
+          {flags.length > 8 && <p className="muted small">và {flags.length - 8} cảnh báo khác…</p>}
+        </div>
+      )}
 
       <div className="card flush">
         <div className="card-head pad"><h3>Danh sách nhóm</h3></div>
         <table className="table plain">
-          <thead><tr><th>Nhóm</th><th>Đề tài</th><th>Tiến độ (theo trọng số)</th><th>Quá hạn chưa nộp</th><th>Nộp trễ</th><th>Tình trạng</th></tr></thead>
+          <thead><tr><th>Nhóm</th><th>Đề tài</th><th>Tiến độ (theo trọng số)</th><th>Task đúng hạn</th><th>Quá hạn chưa xong</th><th>Sửa lại</th><th>Milestone chính quá hạn</th><th>Tình trạng</th></tr></thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.teamId}>
-                <td><Link to={`/teams/${r.teamId}`}>{r.teamName}</Link></td>
-                <td>{r.topicTitle || <span className="muted">Chưa có</span>}</td>
-                <td style={{ minWidth: 160 }}><Progress percent={r.percent} /><span className="muted small">{r.doneTasks}/{r.totalTasks} task</span></td>
-                <td>{r.overdueMilestones}</td>
-                <td>{r.lateSubmissions}</td>
-                <td><Badge kind={r.atRisk ? 'bad' : 'good'}>{r.atRisk ? 'Có nguy cơ chậm' : 'Đúng tiến độ'}</Badge></td>
-              </tr>
-            ))}
+            {rows.map((r) => {
+              const c = byTeam[r.teamId];
+              return (
+                <tr key={r.teamId}>
+                  <td><Link to={`/teams/${r.teamId}`}>{r.teamName}</Link><div><Link className="small" to={`/teams/${r.teamId}/contributions`}>Đóng góp →</Link></div></td>
+                  <td>{r.topicTitle || <span className="muted">Chưa có</span>}</td>
+                  <td style={{ minWidth: 160 }}><Progress percent={r.percent} /><span className="muted small">{r.doneTasks}/{r.totalTasks} task</span></td>
+                  <td>{c ? <>{rateText(c.doneTasks === 0 ? null : c.onTimeRate)} <span className="muted small">({c.onTimeTasks}/{c.doneTasks})</span></> : '—'}{c && c.lateTasks > 0 && <> <Badge kind="bad">{c.lateTasks} trễ</Badge></>}</td>
+                  <td>{c ? (c.overdueOpenTasks > 0 ? <Badge kind="bad">{c.overdueOpenTasks}</Badge> : 0) : '—'}</td>
+                  <td>{c ? c.revisionCount : '—'}</td>
+                  <td>{r.overdueMilestones}</td>
+                  <td><Badge kind={r.atRisk || (c && c.overdueOpenTasks > 0) ? 'bad' : 'good'}>{r.atRisk || (c && c.overdueOpenTasks > 0) ? 'Có nguy cơ chậm' : 'Đúng tiến độ'}</Badge></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {rows.length === 0 && <p className="muted pad">Chưa có nhóm nào được duyệt đề tài.</p>}

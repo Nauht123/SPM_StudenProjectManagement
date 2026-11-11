@@ -188,4 +188,37 @@ public final class Dtos {
     public record ContributionReportDto(Long teamId, String teamName, double totalScore, String formula,
                                         List<MemberContributionDto> members) {
     }
+
+    // ---------- Dashboard dong gop (giai doan 2) ----------
+    /** Mot lan bi nhom truong yeu cau sua (theo tung lan nop cua thanh vien). */
+    public record RevisionEventDto(Long taskId, String taskTitle, String milestoneTitle, int attemptNo,
+                                   LocalDateTime submittedAt, LocalDateTime reviewedAt, UserDto reviewedBy,
+                                   String reviewNote) {
+    }
+
+    /**
+     * Lich su nop ca nhan. kind: TASK (bao hoan thanh task) | MILESTONE (bai nop milestone chinh).
+     * role: PERFORMER (nguoi thuc hien task) | UPLOADER | CONTRIBUTOR | UPLOADER_CONTRIBUTOR.
+     * outcome chi co voi kind = TASK (PENDING / APPROVED / REVISION_REQUESTED).
+     */
+    public record IndividualSubmissionDto(String kind, Long id, String title, String milestoneTitle, int attemptNo,
+                                          LocalDateTime at, String outcome, String role, boolean late, String note,
+                                          String fileName) {
+    }
+
+    /** Chi tiet dong gop cua mot thanh vien: task, hieu suat deadline, theo doi sua lai, lich su nop. */
+    public record MemberDetailDto(Long teamId, String teamName, String topicTitle, MemberContributionDto summary,
+                                  List<RevisionEventDto> revisions, List<IndividualSubmissionDto> submissionHistory,
+                                  boolean canExport, String formula) {
+    }
+
+    /** Tong hop dong gop cua mot nhom cho dashboard giang vien (members khong kem danh sach task). */
+    public record TeamContributionSummaryDto(Long teamId, String teamName, String topicTitle, double totalScore,
+                                             long doneTasks, long onTimeTasks, long lateTasks,
+                                             long overdueOpenTasks, long revisionCount, int onTimeRate,
+                                             List<String> flags, List<MemberContributionDto> members) {
+    }
+
+    public record ContributionOverviewDto(List<TeamContributionSummaryDto> teams) {
+    }
 }

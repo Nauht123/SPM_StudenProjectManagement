@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { errMsg } from '../api.js';
 import { useAuth } from '../auth.jsx';
-import { Alert, Badge, Progress, StatCard, fmtDate } from '../ui.jsx';
+import { Alert, Badge, StatCard, fmtDate } from '../ui.jsx';
 
 function MilestoneStatus({ m }) {
   if (m.archived) return <Badge kind="bad">Đã lưu trữ</Badge>;
@@ -103,7 +103,7 @@ export default function TeamDetail() {
         <p className="muted small">Giảng viên quản lý milestone chính · Nhóm trưởng quản lý milestone phụ và giao task · Thành viên thực hiện task.</p>
       </div>
 
-      <ContributionPanel teamId={teamId} reloadKey={milestones.length} />
+      <ContributionSummary teamId={teamId} reloadKey={milestones.length} />
 
       <h3>Milestone chính</h3>
       {mains.map((m) => {
@@ -209,88 +209,30 @@ export default function TeamDetail() {
   );
 }
 
-/** Dong gop ca nhan: GV/admin/nhom truong xem ca nhom, thanh vien chi xem cua minh. */
-function ContributionPanel({ teamId, reloadKey }) {
+/** Tom tat dong gop (chi tiet nam o trang Dong gop ca nhan de tranh trung lap thong ke). */
+function ContributionSummary({ teamId, reloadKey }) {
   const [report, setReport] = useState(null);
-  const [error, setError] = useState('');
-  const [open, setOpen] = useState(null);
 
   useEffect(() => {
-    api.get(`/teams/${teamId}/contributions`).then((r) => setReport(r.data)).catch((e) => setError(errMsg(e)));
+    api.get(`/teams/${teamId}/contributions`).then((r) => setReport(r.data)).catch(() => {});
   }, [teamId, reloadKey]);
 
-  if (error) return <Alert error={error} />;
   if (!report) return null;
-  const STATUS = { TODO: 'Cần làm', DOING: 'Đang làm', REVIEW: 'Chờ xác nhận', DONE: 'Hoàn thành' };
-
+  const top = [...report.members].sort((a, b) => b.score - a.score);
   return (
-    <div className="card flush">
-      <div className="card-head pad">
+    <div className="card">
+      <div className="card-head">
         <h3>Đóng góp cá nhân</h3>
-        <span className="muted small">Tổng điểm nhóm: {report.totalScore}</span>
+        <Link className="btn" to={`/teams/${teamId}/contributions`}>Xem chi tiết →</Link>
       </div>
-      <table className="table plain contrib">
-        <thead>
-          <tr>
-            <th>Thành viên</th><th>Tỷ lệ đóng góp</th><th>Điểm</th><th>Task xong / được giao</th>
-            <th>Đúng hạn</th><th>Trễ hạn</th><th>Chưa xong</th><th>Bị yêu cầu sửa</th><th>Tiến độ cá nhân</th>
-            <th>Bài nộp (upload / đóng góp)</th><th />
-          </tr>
-        </thead>
-        <tbody>
-          {report.members.map((r) => (
-            <MemberRows key={r.member.id} r={r} open={open === r.member.id} onToggle={() => setOpen(open === r.member.id ? null : r.member.id)} status={STATUS} />
-          ))}
-        </tbody>
-      </table>
-      {report.members.length === 0 && <p className="muted pad">Chưa có dữ liệu.</p>}
-      <div className="formula small muted pad">{report.formula}</div>
-    </div>
-  );
-}
-
-function MemberRows({ r, open, onToggle, status }) {
-  return (
-    <>
-      <tr>
-        <td><b>{r.member.fullName}</b>{r.leader && <> <Badge kind="warn">Nhóm trưởng</Badge></>}</td>
-        <td style={{ minWidth: 130 }}>
+      {top.map((r) => (
+        <div className="contrib-row" key={r.member.id}>
+          <Link to={`/teams/${teamId}/members/${r.member.id}`}>{r.member.fullName}</Link>
           <div className="contrib-bar" title={`${r.sharePercent}%`}><div style={{ width: `${r.sharePercent}%` }} /></div>
-          <span className="small muted">{r.sharePercent}%</span>
-        </td>
-        <td><b>{r.score}</b></td>
-        <td>{r.doneTasks}/{r.assignedTasks}</td>
-        <td>{r.onTimeTasks}</td>
-        <td>{r.lateTasks > 0 ? <Badge kind="bad">{r.lateTasks}</Badge> : 0}</td>
-        <td>{r.unfinishedTasks}{r.overdueOpenTasks > 0 && <> <Badge kind="bad">{r.overdueOpenTasks} quá hạn</Badge></>}</td>
-        <td>{r.revisionCount}</td>
-        <td style={{ minWidth: 120 }}><Progress percent={r.progressPercent} /><span className="small muted">{r.weightDone}/{r.weightAssigned} điểm TS</span></td>
-        <td>{r.submissionsUploaded} / {r.submissionsContributed}</td>
-        <td><button className="link small" onClick={onToggle}>{open ? 'Ẩn chi tiết' : 'Chi tiết'}</button></td>
-      </tr>
-      {open && (
-        <tr>
-          <td colSpan={11}>
-            <div className="small muted">
-              Khối lượng đã hoàn thành: {r.workloadHoursDone}h · Task hủy: {r.cancelledTasks} · Đề xuất task: {r.suggestedTasks} (được duyệt {r.approvedSuggestions})
-            </div>
-            <table className="table plain contrib">
-              <thead><tr><th>Task</th><th>Milestone phụ</th><th>Trạng thái</th><th>Trọng số</th><th>Độ khó</th><th>Giờ</th><th>Hạn</th><th>Đúng hạn</th><th>Sửa lại</th><th>Chất lượng</th><th>Điểm</th></tr></thead>
-              <tbody>
-                {r.tasks.map((t) => (
-                  <tr key={t.taskId}>
-                    <td>{t.title}</td><td>{t.milestoneTitle}</td><td>{status[t.status] || t.status}</td>
-                    <td>{t.weight}</td><td>{t.difficulty}</td><td>{t.workloadHours}</td><td>{fmtDate(t.dueDate)}</td>
-                    <td>{t.onTime === null ? '—' : t.onTime ? <Badge kind="good">Đúng hạn</Badge> : <Badge kind="bad">Trễ</Badge>}</td>
-                    <td>{t.revisions}</td><td>{t.qualityRating ? `${t.qualityRating}/5` : '—'}</td><td>{t.status === 'DONE' ? t.points : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {r.tasks.length === 0 && <p className="muted small">Chưa được giao task nào.</p>}
-          </td>
-        </tr>
-      )}
-    </>
+          <span className="small muted">{r.score} điểm · {r.sharePercent}%</span>
+        </div>
+      ))}
+      {top.length === 0 && <p className="muted small">Chưa có dữ liệu.</p>}
+    </div>
   );
 }
