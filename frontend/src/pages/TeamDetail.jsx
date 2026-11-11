@@ -223,7 +223,10 @@ function ContributionSummary({ teamId, reloadKey }) {
     <div className="card">
       <div className="card-head">
         <h3>Đóng góp cá nhân</h3>
-        <Link className="btn" to={`/teams/${teamId}/contributions`}>Xem chi tiết →</Link>
+        <div className="actions">
+          <Link className="btn" to={`/teams/${teamId}/evaluation`}>Điểm tổng hợp &amp; đánh giá chéo</Link>
+          <Link className="btn" to={`/teams/${teamId}/contributions`}>Xem chi tiết →</Link>
+        </div>
       </div>
       {top.map((r) => (
         <div className="contrib-row" key={r.member.id}>

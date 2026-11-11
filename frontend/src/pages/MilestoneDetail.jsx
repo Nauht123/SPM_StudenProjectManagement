@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import api, { downloadSubmission, downloadTaskAttempt, downloadTaskResult, errMsg } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Alert, Badge, fmtDate, fmtTime } from '../ui.jsx';
+import PeerEvaluation from './PeerEvaluation.jsx';
 
 const COLUMNS = [
   ['TODO', 'Cần làm', ''],
@@ -219,6 +220,8 @@ export default function MilestoneDetail() {
             <SubmissionCard key={s.id} sub={s} canFeedback={user.role === 'LECTURER'} onError={setError} />
           ))}
           {submissions.length === 0 && <p className="muted">Chưa có bài nộp.</p>}
+
+          <PeerEvaluation milestone={milestone} team={team} user={user} />
         </>
       ) : (
         <>

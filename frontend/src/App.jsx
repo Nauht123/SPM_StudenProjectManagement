@@ -11,6 +11,7 @@ import TeamPage from './pages/TeamPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Contributions from './pages/Contributions.jsx';
 import TeamContributions from './pages/TeamContributions.jsx';
+import TeamEvaluation from './pages/TeamEvaluation.jsx';
 import MemberContribution from './pages/MemberContribution.jsx';
 import TeamDetail from './pages/TeamDetail.jsx';
 import MilestoneDetail from './pages/MilestoneDetail.jsx';
@@ -18,6 +19,7 @@ import Notifications from './pages/Notifications.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 
 const PAGE_INFO = [
+  [(p) => /^\/teams\/\d+\/evaluation/.test(p), 'Điểm tổng hợp & đánh giá chéo', 'Điểm tự động, điều chỉnh của giảng viên và đánh giá chéo ẩn danh'],
   [(p) => /^\/teams\/\d+\/members\//.test(p), 'Đóng góp cá nhân', 'Điểm, deadline, sửa lại và lịch sử nộp của thành viên'],
   [(p) => /^\/teams\/\d+\/contributions/.test(p), 'Đóng góp cá nhân', 'So sánh đóng góp các thành viên trong nhóm'],
   ['/contributions', 'Đóng góp cá nhân', 'Đóng góp, đúng hạn/trễ hạn và sửa lại theo từng nhóm'],
@@ -133,6 +135,7 @@ export default function App() {
       <Route path="/registrations" element={<Protected roles={['LECTURER']}><Registrations /></Protected>} />
       <Route path="/dashboard" element={<Protected roles={['LECTURER', 'ADMIN']}><Dashboard /></Protected>} />
       <Route path="/contributions" element={<Protected roles={['LECTURER', 'ADMIN']}><Contributions /></Protected>} />
+      <Route path="/teams/:teamId/evaluation" element={<Protected><TeamEvaluation /></Protected>} />
       <Route path="/teams/:teamId/contributions" element={<Protected><TeamContributions /></Protected>} />
       <Route path="/teams/:teamId/members/:userId" element={<Protected><MemberContribution /></Protected>} />
       <Route path="/teams/:teamId" element={<Protected><TeamDetail /></Protected>} />

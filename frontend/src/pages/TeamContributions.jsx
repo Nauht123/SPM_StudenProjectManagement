@@ -25,7 +25,7 @@ export default function TeamContributions() {
 
   return (
     <div>
-      <p className="no-print"><Link to={`/teams/${teamId}`}>← {team.name}</Link></p>
+      <p className="no-print"><Link to={`/teams/${teamId}`}>← {team.name}</Link> · <Link to={`/teams/${teamId}/evaluation`}>Điểm tổng hợp &amp; đánh giá chéo →</Link></p>
       <div className="print-only report-title">
         <h1>Báo cáo đóng góp nhóm {team.name}</h1>
         <div>Đề tài: {team.registration?.topic?.title} · Ngày xuất: {new Date().toLocaleDateString('vi-VN')}</div>

@@ -1,8 +1,12 @@
 package vn.huflit.spm.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import vn.huflit.spm.domain.RegStatus;
@@ -220,5 +224,63 @@ public final class Dtos {
     }
 
     public record ContributionOverviewDto(List<TeamContributionSummaryDto> teams) {
+    }
+
+    // ---------- Danh gia cheo an danh + dieu chinh diem (giai doan 3) ----------
+    /** Mot danh gia cho mot dong doi: muc do dong gop va do nang cong viec duoc giao (1..5). */
+    public record PeerRatingRequest(@NotNull Long evaluateeId,
+                                    @NotNull @Min(1) @Max(5) Integer contributionScore,
+                                    @NotNull @Min(1) @Max(5) Integer workloadScore,
+                                    @Size(max = 500) String comment) {
+    }
+
+    public record PeerEvaluationRequest(@NotEmpty @Valid List<PeerRatingRequest> ratings) {
+    }
+
+    /** Danh gia cua chinh nguoi dang nhap (khong lo ai la nguoi danh gia vi chi tra ve cho chinh ho). */
+    public record PeerRatingDto(Long evaluateeId, int contributionScore, int workloadScore, String comment) {
+    }
+
+    public record MyPeerEvaluationDto(Long milestoneId, String milestoneTitle, boolean open, List<UserDto> teammates,
+                                      List<PeerRatingDto> ratings) {
+    }
+
+    /**
+     * Ket qua tong hop cho mot thanh vien. KHONG co thong tin nguoi danh gia.
+     * visible = false: chua du so danh gia toi thieu de hien thi cho nguoi duoc danh gia (bao ve an danh).
+     */
+    public record PeerResultDto(UserDto member, boolean visible, int ratingCount, Double avgContribution,
+                                Double avgWorkload, Double avgOverall, List<String> comments) {
+    }
+
+    /** pendingEvaluators chi co du lieu cho giang vien/admin; sinh vien luon nhan danh sach rong. */
+    public record PeerResultsDto(Long milestoneId, String milestoneTitle, boolean open, int evaluatorsDone,
+                                 int evaluatorsTotal, List<String> pendingEvaluators, int minRatingsToShow,
+                                 boolean seeAll, List<PeerResultDto> members) {
+    }
+
+    public record AdjustmentRequest(@NotNull Long userId,
+                                    @NotNull @DecimalMin("-100") @DecimalMax("100") Double delta,
+                                    @NotBlank @Size(min = 5, max = 500) String reason,
+                                    Long milestoneId) {
+    }
+
+    public record AdjustmentDto(Long id, UserDto member, UserDto adjustedBy, Long milestoneId, String milestoneTitle,
+                                double delta, String reason, LocalDateTime createdAt, boolean revoked,
+                                LocalDateTime revokedAt) {
+    }
+
+    /**
+     * Diem dong gop cuoi cung = diem tu dong (theo task) + cac dieu chinh con hieu luc cua giang vien (toi thieu 0).
+     * peerAverage: trung binh danh gia cheo (thang 5) qua cac milestone; null neu chua co / chua du de hien thi.
+     * finalSharePercent chi tinh cho giang vien/admin (null voi sinh vien).
+     */
+    public record EvaluationRowDto(UserDto member, boolean leader, double autoScore, double adjustment,
+                                   double finalScore, Double finalSharePercent, Double peerAverage,
+                                   int peerMilestonesRated, List<AdjustmentDto> adjustments) {
+    }
+
+    public record EvaluationSummaryDto(Long teamId, String teamName, boolean canAdjust, boolean seeAll,
+                                       double totalFinalScore, List<EvaluationRowDto> members) {
     }
 }

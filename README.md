@@ -49,6 +49,13 @@ Quy tắc nghiệp vụ chính: mỗi sinh viên chỉ thuộc một nhóm; mỗ
 - **Chi tiết thành viên** (`/teams/{id}/members/{userId}`): điểm và tỷ lệ đóng góp, biểu đồ đúng hạn/trễ hạn/quá hạn chưa xong, danh sách task kèm trọng số, độ khó, chất lượng, điểm; **theo dõi sửa lại** (mỗi lần bị yêu cầu sửa: task, lần nộp, người duyệt, nội dung); **lịch sử nộp cá nhân** (báo hoàn thành task và bài nộp milestone mà thành viên upload hoặc đóng góp, kèm kết quả duyệt và đúng/trễ hạn).
 - **Xuất báo cáo:** Excel (.xlsx) cho cả nhóm hoặc từng cá nhân, và nút *In / Lưu PDF* (in trang báo cáo ra PDF bằng trình duyệt). Chỉ giảng viên hướng dẫn, nhóm trưởng và admin được xuất; thành viên chỉ xem phần của mình.
 
+### Đánh giá chéo ẩn danh và điều chỉnh điểm (giai đoạn 3)
+
+- **Đánh giá chéo theo từng milestone chính** (`/milestones/{id}`, mục *Đánh giá chéo*): mỗi thành viên (kể cả nhóm trưởng) chấm **tất cả bạn cùng nhóm** theo hai tiêu chí thang 1–5: *mức độ đóng góp* và *độ nặng của công việc được giao*, kèm nhận xét tùy chọn. Có thể sửa lại cho đến khi milestone bị lưu trữ.
+- **Ẩn danh:** không API nào trả về người đánh giá. Người đánh giá chỉ đọc lại bài chấm của chính mình; giảng viên/admin xem **kết quả tổng hợp** (trung bình từng tiêu chí, nhận xét sắp theo chữ cái để không lộ thứ tự nộp) và chỉ biết *ai chưa đánh giá* (không biết đánh giá nội dung). Thành viên chỉ thấy kết quả dành cho mình và chỉ khi có ít nhất 2 lượt đánh giá. Trung bình chung của một milestone = (trung bình đóng góp + trung bình độ nặng) ÷ 2.
+- **Điều chỉnh điểm của giảng viên** (`/teams/{id}/evaluation`): giảng viên hướng dẫn cộng/trừ điểm đóng góp của thành viên, **bắt buộc có lý do** (tối thiểu 5 ký tự), có thể gắn với một milestone chính. Mỗi điều chỉnh được lưu lại, thông báo cho thành viên, có thể **thu hồi** nhưng không bị xóa hay sửa.
+- **Điểm cuối cùng** = điểm tự động (theo task) + các điều chỉnh còn hiệu lực, không âm. Đánh giá chéo hiển thị cạnh điểm để giảng viên tham khảo, không tự động cộng vào điểm. Giảng viên/admin xem cả nhóm; thành viên (kể cả nhóm trưởng) chỉ xem điểm và lý do điều chỉnh của chính mình.
+
 ## Chạy nhanh bằng Docker
 
 ```bash
@@ -96,10 +103,11 @@ backend/src/main/java/vn/huflit/spm
 ├── config/    SecurityConfig, DataSeeder
 ├── security/  JwtService, JwtAuthFilter
 ├── domain/    Entity + enum (User, Topic, Team, Registration, Milestone, Task, Submission, Feedback, Notification,
-│              TaskHistory, TaskAssignmentHistory, TaskSubmissionHistory, SubmissionContributor)
+│              TaskHistory, TaskAssignmentHistory, TaskSubmissionHistory, SubmissionContributor,
+│              PeerEvaluation, ContributionAdjustment)
 ├── repo/      Spring Data repositories
 ├── dto/       Request/Response DTO
-├── service/   Auth, Topic, Team, Registration, Milestone, Task, Submission(+Feedback), Contribution, Dashboard, Notification, AccessService, FileStorage
+├── service/   Auth, Topic, Team, Registration, Milestone, Task, Submission(+Feedback), Contribution, PeerEvaluation, Evaluation, Dashboard, Notification, AccessService, FileStorage
 └── web/       Controller + GlobalExceptionHandler
 frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 ```
@@ -116,6 +124,7 @@ frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 | Milestone | `GET/POST /api/teams/{id}/milestones` (body có `parentId` = null: milestone chính, khác null: milestone phụ), `GET/PUT/DELETE /api/milestones/{id}` (xóa chỉ khi chưa có dữ liệu), `POST /api/milestones/{id}/archive`, `POST /api/milestones/{id}/restore` |
 | Task | `GET/POST /api/milestones/{id}/tasks` (body có `difficulty`, `weight`, `workloadHours`), `POST /api/milestones/{id}/tasks/suggest`, `PUT/DELETE /api/tasks/{id}`, `POST /api/tasks/{id}/approve-suggestion`, `/reject-suggestion`, `/cancel`, `/start`, `POST /api/tasks/{id}/submit` (multipart, file/note tùy chọn), `POST /api/tasks/{id}/confirm` (body tùy chọn `qualityRating`), `POST /api/tasks/{id}/reject`, `GET /api/tasks/{id}/result`, `GET /api/tasks/{id}/history`, `GET /api/task-submissions/{id}/download` |
 | Đóng góp | `GET /api/teams/{id}/contributions`, `GET /api/dashboard/contributions` (tổng hợp theo nhóm + cảnh báo, giảng viên/admin), `GET /api/teams/{id}/members/{userId}/contribution` (chi tiết, sửa lại, lịch sử nộp), `GET /api/teams/{id}/contributions/export` và `GET /api/teams/{id}/members/{userId}/report` (Excel) |
+| Đánh giá chéo / điều chỉnh điểm | `GET /api/milestones/{id}/peer-evaluations/mine`, `PUT /api/milestones/{id}/peer-evaluations` (sinh viên), `GET /api/milestones/{id}/peer-evaluations/results`, `GET /api/teams/{id}/evaluation-summary`, `POST /api/teams/{id}/adjustments` (giảng viên hướng dẫn), `DELETE /api/adjustments/{id}` (thu hồi) |
 | Bài nộp / phản hồi | `GET/POST /api/milestones/{id}/submissions` (multipart, có thể kèm nhiều `contributorIds`), `GET /api/submissions/{id}/download`, `GET/POST /api/submissions/{id}/feedback` |
 | Thông báo | `GET /api/notifications`, `GET /api/notifications/unread-count`, `POST /api/notifications/{id}/read`, `POST /api/notifications/read-all` |
 
@@ -129,5 +138,6 @@ Unit test (JUnit 5 + Mockito) trong `backend/src/test`: quy tắc nộp trễ, q
 - Thêm thành viên bằng MSSV (không có bước mời/chấp nhận); thông báo chỉ trong ứng dụng (không email) và được cập nhật bằng polling 30 giây.
 - File nộp lưu trên đĩa của server (volume Docker), chưa dùng object storage; chưa quét virus/giới hạn loại file.
 - Schema do Hibernate `ddl-auto=update` tạo, chưa dùng công cụ migration (Flyway/Liquibase). Các cột mới của `tasks`/`milestones` có giá trị mặc định nên CSDL cũ tự nâng cấp được; task cũ nhận độ khó 3, trọng số 3, khối lượng 4h.
-- Điểm đóng góp tính tại thời điểm xem (không lưu bảng `ContributionScore`); chưa có đánh giá chéo, chấm điểm rubric, điều chỉnh điểm của giảng viên và lịch sử thay đổi thành viên nhóm (giai đoạn sau).
+- Điểm đóng góp tính tại thời điểm xem (không lưu bảng `ContributionScore`); chưa có chấm điểm rubric và lịch sử thay đổi thành viên nhóm (giai đoạn sau).
+- Đánh giá chéo ẩn danh chỉ ẩn ở tầng ứng dụng/API: nhóm rất nhỏ (2–3 người) vẫn có thể đoán ra người chấm từ nội dung nhận xét; quản trị CSDL vẫn đọc được bảng `peer_evaluations`. Có thể mở rộng bằng cách chỉ lưu bản băm hoặc đóng băng kết quả khi chốt điểm.
 - Chưa có integration test và test giao diện tự động.
