@@ -4,6 +4,7 @@ import api, { downloadSubmission, downloadTaskAttempt, downloadTaskResult, errMs
 import { useAuth } from '../auth.jsx';
 import { Alert, Badge, fmtDate, fmtTime } from '../ui.jsx';
 import PeerEvaluation from './PeerEvaluation.jsx';
+import TaskComments from './TaskComments.jsx';
 
 const COLUMNS = [
   ['TODO', 'Cần làm', ''],
@@ -560,7 +561,7 @@ function TaskCard({ task, team, milestone, user, canLead, onRun }) {
 
       <div className="task-links small">
         {canLead && task.status !== 'DONE' && !editing && <button className="link small" onClick={() => setEditing(true)}>Sửa / giao lại</button>}
-        <button className="link small" onClick={() => setShowHistory((v) => !v)}>{showHistory ? 'Ẩn lịch sử' : 'Lịch sử'}</button>
+        <button className="link small" onClick={() => setShowHistory((v) => !v)}>{showHistory ? 'Ẩn lịch sử & bình luận' : 'Lịch sử & bình luận'}</button>
       </div>
 
       {editing && (
@@ -581,7 +582,7 @@ function TaskCard({ task, team, milestone, user, canLead, onRun }) {
           </div>
         </form>
       )}
-      {showHistory && <TaskTimeline taskId={task.id} />}
+      {showHistory && <><TaskComments taskId={task.id} /><TaskTimeline taskId={task.id} /></>}
     </div>
   );
 }

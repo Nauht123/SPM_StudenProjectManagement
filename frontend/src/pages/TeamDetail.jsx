@@ -4,6 +4,30 @@ import api, { errMsg } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Alert, Badge, StatCard, fmtDate } from '../ui.jsx';
 
+const GROUP_COLORS = ['#579bfc', '#00c875', '#a25ddc', '#fdab3d', '#e2445c', '#66ccff'];
+
+/** O trang thai to mau day du (kieu monday.com). */
+function StatusCell({ m }) {
+  let label = 'Đang thực hiện';
+  let bg = '#fdab3d';
+  const isMain = m.parentId === null || m.parentId === undefined;
+  if (m.archived) { label = 'Đã lưu trữ'; bg = '#a0a8b8'; }
+  else if (m.overdue) { label = 'Quá hạn'; bg = '#e2445c'; }
+  else if (isMain ? m.submissions > 0 : m.totalTasks > 0 && m.doneTasks === m.totalTasks) {
+    label = isMain ? 'Đã nộp' : 'Hoàn thành'; bg = '#00c875';
+  } else if (m.totalTasks === 0 && !isMain) { label = 'Chưa có task'; bg = '#c4c4c4'; }
+  return <span className="status-cell" style={{ background: bg }}>{label}</span>;
+}
+
+function MiniProgress({ percent, color }) {
+  return (
+    <div className="mini-progress" title={`${percent}%`}>
+      <div style={{ width: `${percent}%`, background: color }} />
+      <span>{percent}%</span>
+    </div>
+  );
+}
+
 function MilestoneStatus({ m }) {
   if (m.archived) return <Badge kind="bad">Đã lưu trữ</Badge>;
   if (m.overdue) return <Badge kind="bad">Quá hạn</Badge>;
@@ -22,6 +46,7 @@ export default function TeamDetail() {
   const [mainForm, setMainForm] = useState({ title: '', description: '', dueDate: '' });
   const [subForms, setSubForms] = useState({});
   const [error, setError] = useState('');
+  const [collapsed, setCollapsed] = useState({});
 
   const load = async () => {
     try {
@@ -99,81 +124,100 @@ export default function TeamDetail() {
       )}
       <div className="card">
         <p><b>Đề tài:</b> {team.registration?.topic.title} · <b>GVHD:</b> {team.registration?.topic.lecturer?.fullName}</p>
-        <p><b>Thành viên:</b> {team.members.map((m) => m.fullName + (m.id === team.leader.id ? ' (nhóm trưởng)' : '')).join(', ')}</p>
+        <div className="member-chips">
+          {team.members.map((m) => (
+            <span className="member-chip" key={m.id} title={m.studentCode || ''}>
+              <i>{m.fullName.split(' ').slice(-1)[0].slice(0, 1).toUpperCase()}</i>{m.fullName}{m.id === team.leader.id && <em>nhóm trưởng</em>}
+            </span>
+          ))}
+        </div>
         <p className="muted small">Giảng viên quản lý milestone chính · Nhóm trưởng quản lý milestone phụ và giao task · Thành viên thực hiện task.</p>
       </div>
 
       <ContributionSummary teamId={teamId} reloadKey={milestones.length} />
 
       <h3>Milestone chính</h3>
-      {mains.map((m) => {
+      {mains.map((m, idx) => {
         const subs = subsOf(m.id);
         const f = subForms[m.id] || { title: '', description: '', dueDate: '' };
+        const color = GROUP_COLORS[idx % GROUP_COLORS.length];
+        const isClosed = collapsed[m.id];
         return (
-          <div className="card" key={m.id}>
-            <div className="row between">
-              <div>
-                <Link to={`/milestones/${m.id}`}><b>{m.title}</b></Link>{' '}
-                <MilestoneStatus m={m} />
-                <div className="muted small">
-                  Hạn nộp {fmtDate(m.dueDate)} · {m.subMilestones} milestone phụ · {m.doneTasks}/{m.totalTasks} task · {m.submissions} bài nộp
-                  {m.pendingReview > 0 && <> · <b>{m.pendingReview} task chờ xác nhận</b></>}
-                </div>
-              </div>
+          <div className="mgroup" key={m.id} style={{ '--gc': color }}>
+            <div className="mgroup-head">
+              <button className="chev" aria-label="Thu gọn / mở rộng" onClick={() => setCollapsed({ ...collapsed, [m.id]: !isClosed })}>
+                {isClosed ? '▸' : '▾'}
+              </button>
+              <Link to={`/milestones/${m.id}`} className="mgroup-title">{m.title}</Link>
+              <span className="muted small">
+                {subs.length} milestone phụ · {m.doneTasks}/{m.totalTasks} task · {m.submissions} bài nộp
+                {m.pendingReview > 0 && <> · <b>{m.pendingReview} task chờ xác nhận</b></>}
+              </span>
+              <span className="grow" />
               {canMain && (
-                <div className="row">
+                <span className="row">
                   <button onClick={() => archive(m)}>Lưu trữ</button>
                   {isEmpty(m) && <button className="danger" onClick={() => remove(m)}>Xóa</button>}
-                </div>
+                </span>
               )}
             </div>
 
-            {subs.length > 0 && (
-              <table className="table plain">
-                <thead><tr><th>Milestone phụ</th><th>Hạn</th><th>Task</th><th>Trạng thái</th><th /></tr></thead>
-                <tbody>
-                  {subs.map((s) => (
-                    <tr key={s.id}>
-                      <td><Link to={`/milestones/${s.id}`}>{s.title}</Link></td>
-                      <td>{fmtDate(s.dueDate)}</td>
-                      <td>{s.doneTasks}/{s.totalTasks} ({s.percent}%){s.pendingReview > 0 && <> <Badge kind="warn">{s.pendingReview} chờ xác nhận</Badge></>}</td>
-                      <td><MilestoneStatus m={s} /></td>
-                      <td className="actions">
-                        {canSub && <button onClick={() => archive(s)}>Lưu trữ</button>}{' '}
-                        {canSub && s.totalTasks === 0 && <button className="danger" onClick={() => remove(s)}>Xóa</button>}
-                      </td>
+            {!isClosed && (
+              <>
+                <table className="mtable">
+                  <thead><tr><th>Mục</th><th>Trạng thái</th><th>Tiến độ</th><th>Hạn</th><th>Task</th><th /></tr></thead>
+                  <tbody>
+                    <tr className="main-row">
+                      <td><Link to={`/milestones/${m.id}`}><b>{m.title}</b></Link></td>
+                      <td><StatusCell m={m} /></td>
+                      <td><MiniProgress percent={m.percent} color={color} /></td>
+                      <td>{fmtDate(m.dueDate)}</td>
+                      <td>{m.doneTasks}/{m.totalTasks}</td>
+                      <td />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {subs.length === 0 && <p className="muted small">Chưa có milestone phụ.</p>}
-            {archivedSubsOf(m.id).length > 0 && (
-              <details className="subform">
-                <summary>Milestone phụ đã lưu trữ ({archivedSubsOf(m.id).length})</summary>
-                <ul>
-                  {archivedSubsOf(m.id).map((s) => (
-                    <li key={s.id}>
-                      <Link to={`/milestones/${s.id}`}>{s.title}</Link>{' '}
-                      {canSub && <button className="link small" onClick={() => restore(s)}>Khôi phục</button>}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-
-            {canSub && (
-              <details className="subform">
-                <summary>+ Thêm milestone phụ</summary>
-                <form className="form" onSubmit={(e) => createSub(e, m.id)}>
-                  <div className="row">
-                    <label>Tên milestone phụ<input value={f.title} onChange={(e) => setSub(m.id, 'title', e.target.value)} required /></label>
-                    <label>Hạn (không sau {fmtDate(m.dueDate)})<input type="date" max={m.dueDate} value={f.dueDate} onChange={(e) => setSub(m.id, 'dueDate', e.target.value)} required /></label>
-                  </div>
-                  <label>Mô tả<input value={f.description} onChange={(e) => setSub(m.id, 'description', e.target.value)} /></label>
-                  <button className="primary" type="submit">Thêm milestone phụ</button>
-                </form>
-              </details>
+                    {subs.map((sm) => (
+                      <tr key={sm.id} className="sub-row">
+                        <td className="indent"><Link to={`/milestones/${sm.id}`}>{sm.title}</Link></td>
+                        <td><StatusCell m={sm} /></td>
+                        <td><MiniProgress percent={sm.percent} color={color} /></td>
+                        <td>{fmtDate(sm.dueDate)}</td>
+                        <td>{sm.doneTasks}/{sm.totalTasks}{sm.pendingReview > 0 && <> <Badge kind="warn">{sm.pendingReview} chờ xác nhận</Badge></>}</td>
+                        <td className="actions">
+                          {canSub && <button onClick={() => archive(sm)}>Lưu trữ</button>}{' '}
+                          {canSub && sm.totalTasks === 0 && <button className="danger" onClick={() => remove(sm)}>Xóa</button>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {subs.length === 0 && <p className="muted small pad">Chưa có milestone phụ.</p>}
+                {archivedSubsOf(m.id).length > 0 && (
+                  <details className="subform pad">
+                    <summary>Milestone phụ đã lưu trữ ({archivedSubsOf(m.id).length})</summary>
+                    <ul>
+                      {archivedSubsOf(m.id).map((sm) => (
+                        <li key={sm.id}>
+                          <Link to={`/milestones/${sm.id}`}>{sm.title}</Link>{' '}
+                          {canSub && <button className="link small" onClick={() => restore(sm)}>Khôi phục</button>}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {canSub && (
+                  <details className="subform pad">
+                    <summary>+ Thêm milestone phụ</summary>
+                    <form className="form" onSubmit={(e) => createSub(e, m.id)}>
+                      <div className="row">
+                        <label>Tên milestone phụ<input value={f.title} onChange={(e) => setSub(m.id, 'title', e.target.value)} required /></label>
+                        <label>Hạn (không sau {fmtDate(m.dueDate)})<input type="date" max={m.dueDate} value={f.dueDate} onChange={(e) => setSub(m.id, 'dueDate', e.target.value)} required /></label>
+                      </div>
+                      <label>Mô tả<input value={f.description} onChange={(e) => setSub(m.id, 'description', e.target.value)} /></label>
+                      <button className="primary" type="submit">Thêm milestone phụ</button>
+                    </form>
+                  </details>
+                )}
+              </>
             )}
           </div>
         );
@@ -224,6 +268,9 @@ function ContributionSummary({ teamId, reloadKey }) {
       <div className="card-head">
         <h3>Đóng góp cá nhân</h3>
         <div className="actions">
+          <Link className="btn" to={`/teams/${teamId}/calendar`}>Lịch</Link>
+          <Link className="btn" to={`/teams/${teamId}/activity`}>Nhật ký</Link>
+          <Link className="btn" to={`/teams/${teamId}/github`}>GitHub</Link>
           <Link className="btn" to={`/teams/${teamId}/evaluation`}>Điểm tổng hợp &amp; đánh giá chéo</Link>
           <Link className="btn" to={`/teams/${teamId}/contributions`}>Xem chi tiết →</Link>
         </div>

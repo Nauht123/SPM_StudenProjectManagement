@@ -6,7 +6,7 @@ import { Alert, AreaChart, Badge, HBar, Icon, MiniBars, Progress, Sparkline, Sta
 import { rateText } from '../contribution.jsx';
 
 const pct = (a, b) => (b === 0 ? 0 : Math.round((a * 100) / b));
-const BAR_COLORS = ['#d92550', '#3ac47d', '#3f6ad8', '#f7b924'];
+const BAR_COLORS = ['#1d5aa6', '#12a46b', '#6f9bd1', '#f5a524'];
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -72,7 +72,7 @@ export default function Dashboard() {
           <div className="mini-icon blue"><Icon name="check" size={20} /></div>
           <div className="mini-value">{done}</div>
           <div className="muted small">Task đã hoàn thành</div>
-          <Sparkline values={rows.map((r) => r.doneTasks)} color="#16a34a" />
+          <Sparkline values={rows.map((r) => r.doneTasks)} color="#12a46b" />
         </div>
         <div className="card mini">
           <div className="mini-icon red"><Icon name="file" size={20} /></div>
@@ -84,15 +84,15 @@ export default function Dashboard() {
           <div className="mini-icon pink"><Icon name="trend" size={20} /></div>
           <div className="mini-value">{avg}%</div>
           <div className="muted small">Tiến độ trung bình toàn bộ nhóm</div>
-          <Sparkline values={rows.map((r) => r.percent)} color="#7c5cdb" />
+          <Sparkline values={rows.map((r) => r.percent)} color="#5b4fc9" />
         </div>
       </div>
 
       <div className="targets">
-        <TargetCard percent={pct(done, total)} label="Hoàn thành task" color="#d92550" />
-        <TargetCard percent={pct(rows.length - atRisk, rows.length)} label="Nhóm đúng tiến độ" color="#3ac47d" />
-        <TargetCard percent={pct(onTimeAll, doneTasksAll)} label="Task hoàn thành đúng hạn" color="#f7b924" />
-        <TargetCard percent={pct(slotsUsed, slotsMax)} label="Suất đề tài đã có nhóm" color="#3f6ad8" />
+        <TargetCard percent={pct(done, total)} label="Hoàn thành task" color="#1d5aa6" />
+        <TargetCard percent={pct(rows.length - atRisk, rows.length)} label="Nhóm đúng tiến độ" color="#12a46b" />
+        <TargetCard percent={pct(onTimeAll, doneTasksAll)} label="Task hoàn thành đúng hạn" color="#f5a524" />
+        <TargetCard percent={pct(slotsUsed, slotsMax)} label="Suất đề tài đã có nhóm" color="#6f9bd1" />
       </div>
 
       {flags.length > 0 && (

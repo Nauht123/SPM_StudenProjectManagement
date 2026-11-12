@@ -8,5 +8,7 @@ import java.util.List;
 public interface TaskHistoryRepository extends JpaRepository<TaskHistory, Long> {
     List<TaskHistory> findByTaskIdOrderByCreatedAtAscIdAsc(Long taskId);
 
+    List<TaskHistory> findTop50ByTaskMilestoneTeamIdOrderByCreatedAtDesc(Long teamId);
+
     void deleteByTaskId(Long taskId);
 }

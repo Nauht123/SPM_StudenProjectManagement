@@ -2,15 +2,18 @@ package vn.huflit.spm.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.huflit.spm.domain.MemberAction;
 import vn.huflit.spm.domain.RegStatus;
 import vn.huflit.spm.domain.Registration;
 import vn.huflit.spm.domain.Role;
 import vn.huflit.spm.domain.Team;
+import vn.huflit.spm.domain.TeamMemberHistory;
 import vn.huflit.spm.domain.User;
 import vn.huflit.spm.dto.Dtos.AddMemberRequest;
 import vn.huflit.spm.dto.Dtos.TeamDto;
 import vn.huflit.spm.dto.Dtos.TeamRequest;
 import vn.huflit.spm.repo.RegistrationRepository;
+import vn.huflit.spm.repo.TeamMemberHistoryRepository;
 import vn.huflit.spm.repo.TeamRepository;
 import vn.huflit.spm.repo.UserRepository;
 
@@ -24,15 +27,17 @@ public class TeamService {
     private final TeamRepository teams;
     private final UserRepository users;
     private final RegistrationRepository registrations;
+    private final TeamMemberHistoryRepository memberHistory;
     private final AccessService access;
     private final NotificationService notifications;
     private final Mapper mapper;
 
     public TeamService(TeamRepository teams, UserRepository users, RegistrationRepository registrations,
-                       AccessService access, NotificationService notifications, Mapper mapper) {
+                       TeamMemberHistoryRepository memberHistory, AccessService access, NotificationService notifications, Mapper mapper) {
         this.teams = teams;
         this.users = users;
         this.registrations = registrations;
+        this.memberHistory = memberHistory;
         this.access = access;
         this.notifications = notifications;
         this.mapper = mapper;
@@ -73,7 +78,9 @@ public class TeamService {
         t.setName(req.name().trim());
         t.setLeader(u);
         t.getMembers().add(u);
-        return mapper.team(teams.save(t));
+        Team saved = teams.save(t);
+        record(saved, u, u, MemberAction.TEAM_CREATED);
+        return mapper.team(saved);
     }
 
     @Transactional
@@ -94,6 +101,7 @@ public class TeamService {
         }
         t.getMembers().add(target);
         teams.save(t);
+        record(t, target, access.current(), MemberAction.ADDED);
         notifications.notify(target, "Bạn đã được thêm vào nhóm \"" + t.getName() + "\"");
         return mapper.team(t);
     }
@@ -112,8 +120,18 @@ public class TeamService {
                 .orElseThrow(() -> ApiException.notFound("Thành viên không thuộc nhóm"));
         t.getMembers().remove(removed);
         teams.save(t);
+        record(t, removed, access.current(), MemberAction.REMOVED);
         notifications.notify(removed, "Bạn đã bị xóa khỏi nhóm \"" + t.getName() + "\"");
         return mapper.team(t);
+    }
+
+    private void record(Team team, User member, User actor, MemberAction action) {
+        TeamMemberHistory h = new TeamMemberHistory();
+        h.setTeam(team);
+        h.setMember(member);
+        h.setActor(actor);
+        h.setAction(action);
+        memberHistory.save(h);
     }
 
     public Team find(Long id) {

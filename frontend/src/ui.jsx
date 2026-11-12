@@ -78,7 +78,7 @@ function toPoints(values, w, h, pad, max) {
 }
 
 let gid = 0;
-export function AreaChart({ values, labels = [], color = '#f97316', height = 150 }) {
+export function AreaChart({ values, labels = [], color = '#1d5aa6', height = 150 }) {
   const id = `ag${++gid}`;
   const w = 600;
   const data = values.length ? values : [0, 0];
@@ -109,7 +109,7 @@ export function AreaChart({ values, labels = [], color = '#f97316', height = 150
   );
 }
 
-export function Sparkline({ values, color = '#16a34a', height = 70 }) {
+export function Sparkline({ values, color = '#12a46b', height = 70 }) {
   const w = 300;
   const data = values.length ? values : [0, 0];
   const pts = toPoints(data, w, height, 8);
@@ -138,7 +138,7 @@ export function MiniBars({ values, color = '#6b8cf5', height = 70 }) {
 }
 
 // ---------- Thanh tien do co nhan (kieu "63% Generated Leads") ----------
-export function HBar({ percent, label, color = '#d92550' }) {
+export function HBar({ percent, label, color = '#1d5aa6' }) {
   return (
     <div className="hbar">
       <div className="hbar-head"><b>{percent}%</b><span>{label}</span></div>

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import vn.huflit.spm.domain.MemberAction;
 import vn.huflit.spm.domain.RegStatus;
 import vn.huflit.spm.domain.Role;
 import vn.huflit.spm.domain.SubmissionOutcome;
@@ -282,5 +283,61 @@ public final class Dtos {
 
     public record EvaluationSummaryDto(Long teamId, String teamName, boolean canAdjust, boolean seeAll,
                                        double totalFinalScore, List<EvaluationRowDto> members) {
+    }
+
+    // ---- GitHub ----
+    public record GithubLinkRequest(@NotBlank @Size(max = 200) String repoUrl, @Size(max = 255) String token) {
+    }
+
+    /** login trống = gỡ liên kết tài khoản GitHub của thành viên. */
+    public record GithubAccountRequest(@NotNull Long userId, @Size(max = 100) String login) {
+    }
+
+    public record GithubMemberStatDto(UserDto member, String login, int commits, int pullsOpened, int pullsMerged,
+                                      LocalDateTime lastActivity) {
+    }
+
+    public record GithubUnmappedDto(String author, int commits, int pulls) {
+    }
+
+    public record GithubCommitDto(String sha, String message, String authorName, String authorLogin, UserDto member,
+                                  LocalDateTime committedAt, String url) {
+    }
+
+    public record GithubPullDto(int number, String title, String state, String authorLogin, UserDto member,
+                                LocalDateTime createdAt, LocalDateTime mergedAt, String url) {
+    }
+
+    public record GithubWeekDto(java.time.LocalDate weekStart, int commits) {
+    }
+
+    /** Không có trường token: token chỉ tồn tại dạng mã hóa trong CSDL (hasToken cho biết đã cấu hình hay chưa). */
+    public record GithubOverviewDto(boolean linked, boolean canManage, String owner, String repo, String repoUrl,
+                                    boolean hasToken, LocalDateTime lastSyncAt, String lastSyncError,
+                                    int totalCommits, int totalPulls, List<GithubMemberStatDto> members,
+                                    List<GithubUnmappedDto> unmapped, List<GithubCommitDto> recentCommits,
+                                    List<GithubPullDto> recentPulls, List<GithubWeekDto> weekly) {
+    }
+
+    // ---- Binh luan, nhat ky hoat dong, lich ----
+    public record CommentRequest(@NotBlank @Size(max = 1000) String content) {
+    }
+
+    public record CommentDto(Long id, Long taskId, UserDto author, String content, LocalDateTime createdAt,
+                             boolean canDelete) {
+    }
+
+    /** type: TASK, COMMENT, MILESTONE, MEMBER, GITHUB. */
+    public record ActivityDto(String type, String message, UserDto actor, LocalDateTime at, Long taskId,
+                              Long milestoneId) {
+    }
+
+    public record MemberHistoryDto(Long id, UserDto member, UserDto actor, MemberAction action,
+                                   LocalDateTime createdAt) {
+    }
+
+    /** type: MILESTONE hoac TASK. status chi co voi TASK. */
+    public record CalendarEventDto(String type, Long id, Long milestoneId, String title, java.time.LocalDate date,
+                                   String status, UserDto assignee, boolean overdue) {
     }
 }

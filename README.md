@@ -56,6 +56,26 @@ Quy tắc nghiệp vụ chính: mỗi sinh viên chỉ thuộc một nhóm; mỗ
 - **Điều chỉnh điểm của giảng viên** (`/teams/{id}/evaluation`): giảng viên hướng dẫn cộng/trừ điểm đóng góp của thành viên, **bắt buộc có lý do** (tối thiểu 5 ký tự), có thể gắn với một milestone chính. Mỗi điều chỉnh được lưu lại, thông báo cho thành viên, có thể **thu hồi** nhưng không bị xóa hay sửa.
 - **Điểm cuối cùng** = điểm tự động (theo task) + các điều chỉnh còn hiệu lực, không âm. Đánh giá chéo hiển thị cạnh điểm để giảng viên tham khảo, không tự động cộng vào điểm. Giảng viên/admin xem cả nhóm; thành viên (kể cả nhóm trưởng) chỉ xem điểm và lý do điều chỉnh của chính mình.
 
+### Tích hợp GitHub (giai đoạn 3B)
+
+- Nhóm trưởng (hoặc admin) liên kết repo của nhóm bằng URL và **token cá nhân** (có thể bỏ trống nếu repo công khai). Token được mã hóa AES-GCM trước khi lưu (khóa lấy từ biến môi trường `GITHUB_TOKEN_SECRET`, mặc định dùng `JWT_SECRET`) và không bao giờ trả về qua API.
+- Mọi thành viên và giảng viên hướng dẫn xem được thống kê; bấm "Đồng bộ ngay" để lấy commit và pull request mới (đồng bộ tăng dần, cách nhau tối thiểu 30 giây để tránh giới hạn của GitHub).
+- Mỗi thành viên khai báo username GitHub của mình (nhóm trưởng khai báo hộ được). Commit/PR được gán cho thành viên khi đọc, nên đổi tài khoản thì thống kê cập nhật theo; commit của tài khoản chưa khai báo hiện ở mục "chưa gán".
+- Thống kê: commit, PR đã tạo, PR đã merge, hoạt động gần nhất theo từng thành viên; biểu đồ commit 8 tuần; danh sách commit và PR gần đây. Trang: `/teams/{id}/github`.
+- Hướng phát triển: webhook để cập nhật thời gian thực thay cho đồng bộ thủ công, gắn commit với task qua mã `#id` trong commit message.
+
+### Bình luận, nhật ký hoạt động, lịch (giai đoạn 3C)
+
+- **Bình luận task:** thành viên, giảng viên hướng dẫn và admin cùng trao đổi dưới mỗi task (mở "Lịch sử & bình luận"). Người đang làm task và nhóm trưởng được thông báo; chỉ tác giả hoặc admin xóa được bình luận.
+- **Nhật ký hoạt động** (`/teams/{id}/activity`): gộp từ lịch sử task, bình luận, milestone, thay đổi thành viên và pull request GitHub, mới nhất trước. Đây là dữ liệu đọc gộp từ các bảng lịch sử sẵn có nên không thể lệch với dữ liệu gốc.
+- **Lịch sử thay đổi thành viên:** ghi lại tạo nhóm, thêm, xóa thành viên (ai làm, lúc nào); chỉ ghi thêm, không sửa/xóa. Chỉ có dữ liệu từ khi có tính năng này.
+- **Lịch** (`/teams/{id}/calendar`): lịch tháng gồm hạn milestone (không tính milestone đã lưu trữ) và hạn task còn hiệu lực; task trễ hạn tô đỏ; sinh viên có thể lọc "chỉ task của tôi".
+
+### Giao diện (giai đoạn 3D)
+
+- Chủ đề màu xanh dịu (kiểu TaskFlow): thanh trên và menu dạng thẻ bo góc, thẻ thống kê màu pastel, biểu đồ dùng bảng màu xanh.
+- Trang nhóm dạng bảng phân cấp (kiểu monday.com): mỗi milestone chính là một nhóm có màu riêng, thu gọn/mở rộng được; bên trong là bảng cột Mục / Trạng thái (ô màu) / Tiến độ (thanh %) / Hạn / Task, milestone phụ thụt vào bên dưới. Thành viên hiển thị dạng thẻ có avatar.
+
 ## Chạy nhanh bằng Docker
 
 ```bash
@@ -121,6 +141,8 @@ frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 | Đề tài | `GET /api/topics`, `GET /api/topics/mine`, `POST/PUT/DELETE /api/topics[/{id}]` |
 | Đăng ký | `POST /api/registrations`, `DELETE /api/registrations/{id}`, `GET /api/registrations/mine`, `GET /api/registrations/lecturer`, `POST /api/registrations/{id}/decision` |
 | Nhóm | `GET /api/teams/me`, `GET /api/teams`, `GET /api/teams/{id}`, `POST /api/teams`, `POST /api/teams/{id}/members`, `DELETE /api/teams/{id}/members/{userId}`, `GET /api/teams/{id}/progress`, `GET /api/dashboard/teams` |
+| Cộng tác | `GET/POST /api/tasks/{id}/comments`, `DELETE /api/comments/{id}`, `GET /api/teams/{id}/activity`, `GET /api/teams/{id}/member-history`, `GET /api/teams/{id}/calendar?from=&to=` |
+| GitHub | `GET/PUT/DELETE /api/teams/{id}/github` (xem / liên kết repo / gỡ), `POST /api/teams/{id}/github/sync`, `PUT /api/teams/{id}/github/accounts` |
 | Milestone | `GET/POST /api/teams/{id}/milestones` (body có `parentId` = null: milestone chính, khác null: milestone phụ), `GET/PUT/DELETE /api/milestones/{id}` (xóa chỉ khi chưa có dữ liệu), `POST /api/milestones/{id}/archive`, `POST /api/milestones/{id}/restore` |
 | Task | `GET/POST /api/milestones/{id}/tasks` (body có `difficulty`, `weight`, `workloadHours`), `POST /api/milestones/{id}/tasks/suggest`, `PUT/DELETE /api/tasks/{id}`, `POST /api/tasks/{id}/approve-suggestion`, `/reject-suggestion`, `/cancel`, `/start`, `POST /api/tasks/{id}/submit` (multipart, file/note tùy chọn), `POST /api/tasks/{id}/confirm` (body tùy chọn `qualityRating`), `POST /api/tasks/{id}/reject`, `GET /api/tasks/{id}/result`, `GET /api/tasks/{id}/history`, `GET /api/task-submissions/{id}/download` |
 | Đóng góp | `GET /api/teams/{id}/contributions`, `GET /api/dashboard/contributions` (tổng hợp theo nhóm + cảnh báo, giảng viên/admin), `GET /api/teams/{id}/members/{userId}/contribution` (chi tiết, sửa lại, lịch sử nộp), `GET /api/teams/{id}/contributions/export` và `GET /api/teams/{id}/members/{userId}/report` (Excel) |
@@ -133,6 +155,8 @@ frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 Unit test (JUnit 5 + Mockito) trong `backend/src/test`: quy tắc nộp trễ, quy tắc đăng ký đề tài (đủ nhóm, đề tài đóng), luồng task (báo hoàn thành, xác nhận, yêu cầu sửa, ràng buộc hạn), lịch sử task / phân công / từng lần nộp, đề xuất và duyệt task, hủy task, lưu trữ milestone, người đóng góp bài nộp, công thức điểm đóng góp, dashboard đóng góp (cảnh báo, phân quyền xem/xuất báo cáo, theo dõi sửa lại, lịch sử nộp cá nhân), file Excel xuất ra và phân quyền (giảng viên không được quản lý task). CI (`.github/workflows/ci.yml`) chạy `mvn verify` và `npm run build` cho mỗi push/PR.
 
 ## Hạn chế đã biết (technical debt)
+
+- GitHub: đồng bộ thủ công (chưa webhook), tối đa 500 commit mỗi lần và 300 PR gần nhất; chưa thống kê dòng code thêm/xóa. Chưa kiểm thử được với GitHub thật trong môi trường phát triển của mình, bạn nên thử với một repo thật trước khi demo.
 
 - Quan hệ `@ManyToOne`/`@ManyToMany` đang dùng EAGER để đơn giản hóa; cần chuyển sang LAZY + fetch join khi dữ liệu lớn.
 - Thêm thành viên bằng MSSV (không có bước mời/chấp nhận); thông báo chỉ trong ứng dụng (không email) và được cập nhật bằng polling 30 giây.
