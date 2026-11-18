@@ -136,4 +136,10 @@ public class Mapper {
     public NotificationDto notification(Notification n) {
         return new NotificationDto(n.getId(), n.getMessage(), n.isSeen(), n.getCreatedAt());
     }
+
+    public TeamChangeRequestDto changeRequest(TeamChangeRequest r) {
+        return new TeamChangeRequestDto(r.getId(), r.getTeam().getId(), r.getTeam().getName(), r.getType(),
+                user(r.getRequestedBy()), user(r.getTargetMember()), user(r.getNewMember()), r.getReason(),
+                r.getStatus(), user(r.getDecidedBy()), r.getDecisionNote(), r.getCreatedAt(), r.getDecidedAt());
+    }
 }

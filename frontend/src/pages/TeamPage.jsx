@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api, { errMsg } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Alert, Badge, Progress, REG_KIND, REG_LABEL } from '../ui.jsx';
+import TeamChangePanel from '../TeamChangePanel.jsx';
 
 export default function TeamPage() {
   const { user } = useAuth();
@@ -98,8 +99,10 @@ export default function TeamPage() {
             <button className="primary" type="submit">Thêm</button>
           </form>
         )}
-        {locked && <p className="muted small">Nhóm đã được duyệt đề tài nên danh sách thành viên được khóa.</p>}
+        {locked && <p className="muted small">Nhóm đã được duyệt đề tài nên danh sách thành viên chỉ thay đổi khi giảng viên duyệt yêu cầu.</p>}
       </div>
+
+      {locked && <TeamChangePanel team={team} user={user} onChanged={load} />}
     </div>
   );
 }

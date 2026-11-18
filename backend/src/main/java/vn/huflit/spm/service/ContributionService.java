@@ -9,6 +9,7 @@ import vn.huflit.spm.repo.TaskRepository;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Theo doi dong gop ca nhan. Diem dong gop cua mot task da hoan thanh:
@@ -83,6 +84,21 @@ public class ContributionService {
             rows.add(row);
             total += row.score();
         }
+        // Thanh vien da roi nhom van giu dong gop cua task da lam (de tong diem nhom va ty le cua nguoi khac khong bi lech)
+        Set<Long> currentIds = team.getMembers().stream().map(User::getId).collect(Collectors.toSet());
+        Map<Long, User> former = new LinkedHashMap<>();
+        for (Task t : teamTasks) {
+            User a = t.getAssignee();
+            if (a != null && !currentIds.contains(a.getId()) && t.getStatus() != TaskStatus.SUGGESTED
+                    && t.getStatus() != TaskStatus.CANCELLED) {
+                former.putIfAbsent(a.getId(), a);
+            }
+        }
+        for (User f : former.values().stream().sorted(Comparator.comparing(User::getId)).toList()) {
+            MemberContributionDto row = member(team, f, teamTasks, teamSubmissions, teamContributors);
+            rows.add(asFormer(row));
+            total += row.score();
+        }
         List<MemberContributionDto> result = new ArrayList<>();
         for (MemberContributionDto r : rows) {
             if (!seeAll && !r.member().id().equals(viewer.getId())) {
@@ -92,6 +108,23 @@ public class ContributionService {
             result.add(withShare(r, share));
         }
         return new ContributionReportDto(team.getId(), team.getName(), round2(total), FORMULA, result);
+    }
+
+    /** Hau to ten hien thi cho thanh vien da roi nhom nhung con dong gop trong bao cao. */
+    public static final String FORMER_SUFFIX = " (đã rời nhóm)";
+
+    public static boolean isFormer(MemberContributionDto r) {
+        return r.member().fullName().endsWith(FORMER_SUFFIX);
+    }
+
+    private static MemberContributionDto asFormer(MemberContributionDto r) {
+        UserDto u = r.member();
+        return new MemberContributionDto(new UserDto(u.id(), u.username(), u.fullName() + FORMER_SUFFIX,
+                u.studentCode(), u.role()), false, r.assignedTasks(), r.doneTasks(), r.onTimeTasks(), r.lateTasks(),
+                r.unfinishedTasks(), r.overdueOpenTasks(), r.cancelledTasks(), r.revisionCount(), r.weightAssigned(),
+                r.weightDone(), r.workloadHoursDone(), r.suggestedTasks(), r.approvedSuggestions(),
+                r.submissionsUploaded(), r.submissionsContributed(), r.score(), r.sharePercent(),
+                r.progressPercent(), r.tasks());
     }
 
     private MemberContributionDto member(Team team, User member, List<Task> teamTasks, List<Submission> teamSubmissions,

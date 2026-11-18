@@ -31,6 +31,10 @@ class ActivityServiceTest {
     @Mock TeamMemberHistoryRepository memberHistory;
     @Mock GithubPullRequestRepository pulls;
     @Mock TaskRepository tasks;
+    @Mock SubmissionRepository submissions;
+    @Mock FeedbackRepository feedbacks;
+    @Mock RegistrationRepository registrations;
+    @Mock TeamChangeRequestRepository changeRequests;
     @Mock TeamService teamService;
     @Mock AccessService access;
     @Mock Mapper mapper;
@@ -105,6 +109,63 @@ class ActivityServiceTest {
 
         assertEquals(List.of("COMMENT", "TASK", "MILESTONE", "MEMBER"), feed.stream().map(ActivityDto::type).toList());
         assertTrue(feed.get(1).message().contains("An tạo task"));
+    }
+
+    @Test
+    void feedIncludesSubmissionsFeedbackRegistrationAndTeamChanges() {
+        LocalDateTime now = LocalDateTime.now();
+        Submission sub = new Submission();
+        sub.setId(3L);
+        sub.setMilestone(main);
+        sub.setSubmittedBy(an);
+        sub.setVersion(2);
+        sub.setFileName("bao-cao.docx");
+        sub.setSubmittedAt(now.minusHours(5));
+        sub.setLate(true);
+        when(submissions.findTop20ByMilestoneTeamIdOrderBySubmittedAtDesc(10L)).thenReturn(List.of(sub));
+        User gv = user(7, "Thay Khoa");
+        Feedback fb = new Feedback();
+        fb.setSubmission(sub);
+        fb.setLecturer(gv);
+        fb.setComment("Can bo sung muc 2");
+        fb.setCreatedAt(now.minusHours(4));
+        when(feedbacks.findTop20BySubmissionMilestoneTeamIdOrderByCreatedAtDesc(10L)).thenReturn(List.of(fb));
+        Topic topic = new Topic();
+        topic.setTitle("QL do an");
+        Registration reg = new Registration();
+        reg.setTeam(team);
+        reg.setTopic(topic);
+        reg.setStatus(RegStatus.APPROVED);
+        reg.setCreatedAt(now.minusDays(3));
+        when(registrations.findByTeamIdOrderByIdDesc(10L)).thenReturn(List.of(reg));
+        User binh = user(2, "Binh");
+        TeamChangeRequest cr = new TeamChangeRequest();
+        cr.setTeam(team);
+        cr.setType(TeamChangeType.REMOVE_MEMBER);
+        cr.setRequestedBy(an);
+        cr.setTargetMember(binh);
+        cr.setStatus(ChangeRequestStatus.APPROVED);
+        cr.setDecidedBy(gv);
+        cr.setCreatedAt(now.minusHours(2));
+        cr.setDecidedAt(now.minusHours(1));
+        when(changeRequests.findTop20ByTeamIdOrderByCreatedAtDesc(10L)).thenReturn(List.of(cr));
+
+        List<ActivityDto> feed = service.feed(10L);
+
+        assertEquals(List.of("TEAM_CHANGE", "TEAM_CHANGE", "FEEDBACK", "SUBMISSION", "REGISTRATION"),
+                feed.stream().map(ActivityDto::type).toList());
+        assertTrue(feed.get(0).message().contains("Thay Khoa duyệt"));
+        assertTrue(feed.get(3).message().contains("trễ hạn"));
+    }
+
+    @Test
+    void memberTextCoversEveryAction() {
+        for (MemberAction a : MemberAction.values()) {
+            TeamMemberHistory h = new TeamMemberHistory();
+            h.setMember(an);
+            h.setAction(a);
+            assertTrue(ActivityService.memberText(h).contains("An"), a.name());
+        }
     }
 
     @Test

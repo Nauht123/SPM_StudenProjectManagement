@@ -209,4 +209,51 @@ class ContributionServiceTest {
         when(tasks.findByTeam(10L)).thenReturn(List.of());
         assertEquals(2, service.report(10L).members().size());
     }
+
+    @Test
+    void formerMemberKeepsDoneTaskCreditInTeamTotal() {
+        User gone = user(9, "Da roi", Role.STUDENT); // khong con trong team.getMembers()
+        LocalDate due = LocalDate.now().plusDays(5);
+        Task a = done(1, leader, 5, 3, 4, 0, due, LocalDateTime.now());
+        Task b = done(2, gone, 5, 3, 4, 0, due, LocalDateTime.now());
+        when(tasks.findByTeam(10L)).thenReturn(List.of(a, b));
+        when(access.current()).thenReturn(leader);
+
+        ContributionReportDto report = service.report(10L);
+
+        assertEquals(3, report.members().size());
+        MemberContributionDto former = report.members().stream().filter(ContributionService::isFormer).findFirst().orElseThrow();
+        assertTrue(former.member().fullName().endsWith(ContributionService.FORMER_SUFFIX));
+        assertFalse(former.leader());
+        assertTrue(former.score() > 0);
+        MemberContributionDto lead = report.members().stream().filter(m -> m.member().id().equals(1L)).findFirst().orElseThrow();
+        // nguoi con lai khong duoc "an" phan cua nguoi da roi: ty le dua tren tong gom ca nguoi da roi
+        assertEquals(lead.score(), former.score(), 0.001);
+        assertEquals(50.0, lead.sharePercent(), 0.1);
+    }
+
+    @Test
+    void formerMemberIsHiddenFromPlainMemberButStillCountsInTotal() {
+        User gone = user(9, "Da roi", Role.STUDENT);
+        LocalDate due = LocalDate.now().plusDays(5);
+        when(tasks.findByTeam(10L)).thenReturn(List.of(done(1, member, 5, 3, 4, 0, due, LocalDateTime.now()),
+                done(2, gone, 5, 3, 4, 0, due, LocalDateTime.now())));
+        when(access.current()).thenReturn(member);
+
+        ContributionReportDto report = service.report(10L);
+
+        assertEquals(1, report.members().size());
+        assertEquals(50.0, report.members().get(0).sharePercent(), 0.1);
+    }
+
+    @Test
+    void openAndCancelledTasksOfFormerMemberDoNotCreateARow() {
+        User gone = user(9, "Da roi", Role.STUDENT);
+        Task open = done(1, gone, 5, 3, null, 0, null, null);
+        open.setStatus(TaskStatus.CANCELLED);
+        when(tasks.findByTeam(10L)).thenReturn(List.of(open));
+        when(access.current()).thenReturn(leader);
+
+        assertEquals(2, service.report(10L).members().size());
+    }
 }

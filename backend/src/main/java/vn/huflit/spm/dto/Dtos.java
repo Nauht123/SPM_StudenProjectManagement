@@ -10,11 +10,13 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import vn.huflit.spm.domain.MemberAction;
+import vn.huflit.spm.domain.ChangeRequestStatus;
 import vn.huflit.spm.domain.RegStatus;
 import vn.huflit.spm.domain.Role;
 import vn.huflit.spm.domain.SubmissionOutcome;
 import vn.huflit.spm.domain.TaskAction;
 import vn.huflit.spm.domain.TaskStatus;
+import vn.huflit.spm.domain.TeamChangeType;
 import vn.huflit.spm.domain.TopicStatus;
 
 import java.time.LocalDate;
@@ -339,5 +341,16 @@ public final class Dtos {
     /** type: MILESTONE hoac TASK. status chi co voi TASK. */
     public record CalendarEventDto(String type, Long id, Long milestoneId, String title, java.time.LocalDate date,
                                    String status, UserDto assignee, boolean overdue) {
+    }
+
+    // ---------- Yeu cau thay doi nhom (can giang vien duyet) ----------
+    public record TeamChangeRequestRequest(@NotNull TeamChangeType type, Long targetMemberId, String newMemberCode,
+                                           @NotBlank @Size(min = 5, max = 1000) String reason) {
+    }
+
+    public record TeamChangeRequestDto(Long id, Long teamId, String teamName, TeamChangeType type,
+                                       UserDto requestedBy, UserDto target, UserDto newMember, String reason,
+                                       ChangeRequestStatus status, UserDto decidedBy, String decisionNote,
+                                       LocalDateTime createdAt, LocalDateTime decidedAt) {
     }
 }

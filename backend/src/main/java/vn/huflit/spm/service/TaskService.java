@@ -460,6 +460,23 @@ public class TaskService {
                 .orElseThrow(() -> ApiException.badRequest("Người được giao phải là thành viên của nhóm"));
     }
 
+    /**
+     * Thanh vien sap roi nhom: bo giao cac task chua xong (Can lam / Dang lam) de nhom truong giao lai.
+     * Task dang cho xac nhan hoac da hoan thanh giu nguyen nguoi thuc hien de khong mat dong gop da co.
+     */
+    @Transactional
+    public int releaseOpenTasksOf(Team team, User member, User actor) {
+        int released = 0;
+        for (Task t : tasks.findByTeam(team.getId())) {
+            if (t.getAssignee() != null && t.getAssignee().getId().equals(member.getId())
+                    && (t.getStatus() == TaskStatus.TODO || t.getStatus() == TaskStatus.DOING)) {
+                changeAssignee(t, null, actor);
+                released++;
+            }
+        }
+        return released;
+    }
+
     /** Doi nguoi thuc hien: dong ban ghi phan cong cu, mo ban ghi moi (nguoi giao + thoi diem), ghi log va bao cho cac ben. */
     private void changeAssignee(Task t, User newAssignee, User actor) {
         User old = t.getAssignee();

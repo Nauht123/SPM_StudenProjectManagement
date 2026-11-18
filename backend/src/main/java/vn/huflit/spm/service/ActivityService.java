@@ -27,20 +27,30 @@ public class ActivityService {
     private final TeamMemberHistoryRepository memberHistory;
     private final GithubPullRequestRepository pulls;
     private final TaskRepository tasks;
+    private final SubmissionRepository submissions;
+    private final FeedbackRepository feedbacks;
+    private final RegistrationRepository registrations;
+    private final TeamChangeRequestRepository changeRequests;
     private final TeamService teamService;
     private final AccessService access;
     private final Mapper mapper;
 
     public ActivityService(TaskHistoryRepository taskHistory, TaskCommentRepository comments,
                            MilestoneRepository milestones, TeamMemberHistoryRepository memberHistory,
-                           GithubPullRequestRepository pulls, TaskRepository tasks, TeamService teamService,
-                           AccessService access, Mapper mapper) {
+                           GithubPullRequestRepository pulls, TaskRepository tasks,
+                           SubmissionRepository submissions, FeedbackRepository feedbacks,
+                           RegistrationRepository registrations, TeamChangeRequestRepository changeRequests,
+                           TeamService teamService, AccessService access, Mapper mapper) {
         this.taskHistory = taskHistory;
         this.comments = comments;
         this.milestones = milestones;
         this.memberHistory = memberHistory;
         this.pulls = pulls;
         this.tasks = tasks;
+        this.submissions = submissions;
+        this.feedbacks = feedbacks;
+        this.registrations = registrations;
+        this.changeRequests = changeRequests;
         this.teamService = teamService;
         this.access = access;
         this.mapper = mapper;
@@ -73,6 +83,32 @@ public class ActivityService {
             all.add(new ActivityDto("GITHUB", "Pull request #" + p.getNumber() + " \"" + p.getTitle() + "\" ("
                     + stateText(p.getState()) + ", " + (p.getAuthorLogin() == null ? "?" : p.getAuthorLogin()) + ")",
                     null, p.getMergedAt() != null ? p.getMergedAt() : p.getCreatedAt(), null, null));
+        }
+        // Bai nop milestone chinh, phan hoi cua giang vien, dang ky de tai, yeu cau thay doi nhom.
+        // Khong dua diem dieu chinh va danh gia cheo vao day vi chi nguoi lien quan moi duoc xem.
+        for (Submission s : submissions.findTop20ByMilestoneTeamIdOrderBySubmittedAtDesc(teamId)) {
+            all.add(new ActivityDto("SUBMISSION", s.getSubmittedBy().getFullName() + " nộp bài v" + s.getVersion()
+                    + " cho milestone \"" + s.getMilestone().getTitle() + "\"" + (s.isLate() ? " (trễ hạn)" : ""),
+                    user(s.getSubmittedBy()), s.getSubmittedAt(), null, s.getMilestone().getId()));
+        }
+        for (Feedback f : feedbacks.findTop20BySubmissionMilestoneTeamIdOrderByCreatedAtDesc(teamId)) {
+            all.add(new ActivityDto("FEEDBACK", f.getLecturer().getFullName() + " phản hồi bài nộp v"
+                    + f.getSubmission().getVersion() + " của milestone \"" + f.getSubmission().getMilestone().getTitle()
+                    + "\": " + shorten(f.getComment()), user(f.getLecturer()), f.getCreatedAt(), null,
+                    f.getSubmission().getMilestone().getId()));
+        }
+        for (Registration r : registrations.findByTeamIdOrderByIdDesc(teamId)) {
+            all.add(new ActivityDto("REGISTRATION", "Nhóm đăng ký đề tài \"" + r.getTopic().getTitle() + "\" ("
+                    + registrationText(r.getStatus()) + ")", null, r.getCreatedAt(), null, null));
+        }
+        for (TeamChangeRequest r : changeRequests.findTop20ByTeamIdOrderByCreatedAtDesc(teamId)) {
+            all.add(new ActivityDto("TEAM_CHANGE", r.getRequestedBy().getFullName() + " gửi yêu cầu: "
+                    + TeamChangeService.describe(r), user(r.getRequestedBy()), r.getCreatedAt(), null, null));
+            if (r.getDecidedAt() != null && r.getStatus() != ChangeRequestStatus.PENDING) {
+                User who = r.getDecidedBy() != null ? r.getDecidedBy() : r.getRequestedBy();
+                all.add(new ActivityDto("TEAM_CHANGE", who.getFullName() + " " + changeStatusText(r.getStatus())
+                        + " yêu cầu: " + TeamChangeService.describe(r), user(who), r.getDecidedAt(), null, null));
+            }
         }
         all.sort(Comparator.comparing(ActivityDto::at).reversed());
         return all.size() > MAX ? all.subList(0, MAX) : all;
@@ -163,6 +199,24 @@ public class ActivityService {
             case TEAM_CREATED -> name + " tạo nhóm";
             case ADDED -> name + " được thêm vào nhóm";
             case REMOVED -> name + " bị xóa khỏi nhóm";
+            case LEADER_CHANGED -> name + " trở thành nhóm trưởng";
+        };
+    }
+
+    private static String registrationText(RegStatus status) {
+        return switch (status) {
+            case PENDING -> "chờ duyệt";
+            case APPROVED -> "đã được duyệt";
+            case REJECTED -> "bị từ chối";
+        };
+    }
+
+    private static String changeStatusText(ChangeRequestStatus status) {
+        return switch (status) {
+            case APPROVED -> "duyệt";
+            case REJECTED -> "từ chối";
+            case CANCELLED -> "hủy";
+            case PENDING -> "đang chờ";
         };
     }
 }

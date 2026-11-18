@@ -131,8 +131,8 @@ class TaskCommentServiceTest {
 
     @Test
     void canDeleteFlagIsPerViewer() {
-        commentBy(worker);
-        when(comments.findByTaskIdOrderByCreatedAtAscIdAsc(30L)).thenReturn(java.util.List.of(comments.findById(7L).get()));
+        TaskComment mine = commentBy(worker); // khong goi mock ngay trong thenReturn (UnfinishedStubbingException)
+        when(comments.findByTaskIdOrderByCreatedAtAscIdAsc(30L)).thenReturn(java.util.List.of(mine));
         assertTrue(service.list(30L).get(0).canDelete());
         when(access.current()).thenReturn(lecturer);
         assertFalse(service.list(30L).get(0).canDelete());

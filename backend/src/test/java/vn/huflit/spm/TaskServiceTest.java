@@ -380,4 +380,36 @@ class TaskServiceTest {
         assertNull(task.getAssignee());
         assertEquals(TaskStatus.TODO, task.getStatus());
     }
+
+    // ---------------- thanh vien roi nhom ----------------
+    @Test
+    void releaseOpenTasksUnassignsTodoAndDoingButKeepsReviewAndDone() {
+        Team team = sub.getTeam();
+        Task doing = task; // dang lam, giao cho member
+        Task todo = task(6L, TaskStatus.TODO, member);
+        Task review = task(7L, TaskStatus.REVIEW, member);
+        Task done = task(8L, TaskStatus.DONE, member);
+        Task others = task(9L, TaskStatus.DOING, leader);
+        when(tasks.findByTeam(10L)).thenReturn(java.util.List.of(doing, todo, review, done, others));
+
+        int released = service.releaseOpenTasksOf(team, member, leader);
+
+        assertEquals(2, released);
+        assertNull(doing.getAssignee());
+        assertEquals(TaskStatus.TODO, doing.getStatus());
+        assertNull(todo.getAssignee());
+        assertEquals(member, review.getAssignee()); // cho xac nhan: giu de khong mat dong gop
+        assertEquals(member, done.getAssignee());
+        assertEquals(leader, others.getAssignee());
+    }
+
+    private Task task(long id, TaskStatus status, User assignee) {
+        Task t = new Task();
+        t.setId(id);
+        t.setTitle("T" + id);
+        t.setMilestone(sub);
+        t.setStatus(status);
+        t.setAssignee(assignee);
+        return t;
+    }
 }

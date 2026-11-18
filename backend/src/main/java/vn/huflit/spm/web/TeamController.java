@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.huflit.spm.dto.Dtos.*;
 import vn.huflit.spm.service.ContributionInsightService;
 import vn.huflit.spm.service.ContributionService;
+import vn.huflit.spm.service.ProgressReportService;
 import vn.huflit.spm.service.DashboardService;
 import vn.huflit.spm.service.TeamService;
 
@@ -23,9 +24,11 @@ public class TeamController {
     private final DashboardService dashboard;
     private final ContributionService contributions;
     private final ContributionInsightService insights;
+    private final ProgressReportService progressReports;
 
     public TeamController(TeamService teams, DashboardService dashboard, ContributionService contributions,
-                          ContributionInsightService insights) {
+                          ContributionInsightService insights, ProgressReportService progressReports) {
+        this.progressReports = progressReports;
         this.teams = teams;
         this.dashboard = dashboard;
         this.contributions = contributions;
@@ -108,6 +111,12 @@ public class TeamController {
     @GetMapping("/teams/{id}/members/{userId}/report")
     public ResponseEntity<byte[]> exportMember(@PathVariable Long id, @PathVariable Long userId) {
         return xlsx(insights.exportMember(id, userId), "bao-cao-ca-nhan-" + id + "-" + userId + ".xlsx");
+    }
+
+    /** Xuat Excel bao cao tien do cua nhom (giang vien, nhom truong, admin). */
+    @GetMapping("/teams/{id}/progress/export")
+    public ResponseEntity<byte[]> exportProgress(@PathVariable Long id) {
+        return xlsx(progressReports.export(id), "tien-do-nhom-" + id + ".xlsx");
     }
 
     private static ResponseEntity<byte[]> xlsx(byte[] body, String fileName) {

@@ -70,6 +70,15 @@ public class AccessService {
         throw ApiException.forbidden("Chỉ nhóm trưởng mới thực hiện được thao tác này");
     }
 
+    /** Xuat bao cao: giang vien, nhom truong hoac admin (thanh vien thuong khong xuat). */
+    public void requireExport(Team team) {
+        User u = current();
+        if (u.getRole() == Role.ADMIN || u.getRole() == Role.LECTURER || isLeader(team, u)) {
+            return;
+        }
+        throw ApiException.forbidden("Chỉ giảng viên, nhóm trưởng hoặc quản trị viên mới xuất được báo cáo");
+    }
+
     /** Giang vien huong dan cua nhom hoac quan tri vien. */
     public void requireSupervisorOrAdmin(Team team) {
         User u = current();

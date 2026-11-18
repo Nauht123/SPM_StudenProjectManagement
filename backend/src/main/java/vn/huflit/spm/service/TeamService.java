@@ -88,7 +88,7 @@ public class TeamService {
         Team t = find(teamId);
         access.requireLeader(t);
         if (registrations.existsByTeamIdAndStatusIn(teamId, List.of(RegStatus.APPROVED))) {
-            throw ApiException.conflict("Nhóm đã được duyệt đề tài, không thể thay đổi thành viên");
+            throw ApiException.conflict("Nhóm đã được duyệt đề tài. Hãy gửi yêu cầu thay đổi để giảng viên hướng dẫn duyệt.");
         }
         if (t.getMembers().size() >= MAX_MEMBERS) {
             throw ApiException.conflict("Nhóm đã đủ " + MAX_MEMBERS + " thành viên");
@@ -111,7 +111,7 @@ public class TeamService {
         Team t = find(teamId);
         access.requireLeader(t);
         if (registrations.existsByTeamIdAndStatusIn(teamId, List.of(RegStatus.APPROVED))) {
-            throw ApiException.conflict("Nhóm đã được duyệt đề tài, không thể thay đổi thành viên");
+            throw ApiException.conflict("Nhóm đã được duyệt đề tài. Hãy gửi yêu cầu thay đổi để giảng viên hướng dẫn duyệt.");
         }
         if (t.getLeader().getId().equals(userId)) {
             throw ApiException.badRequest("Không thể xóa nhóm trưởng khỏi nhóm");
@@ -125,6 +125,51 @@ public class TeamService {
         return mapper.team(t);
     }
 
+    // ---- Thay doi do giang vien duyet (khong kiem tra quyen o day; TeamChangeService da kiem tra) ----
+
+    /** Them sinh vien vao nhom sau khi duoc duyet: kiem tra lai suc chua va sinh vien chua thuoc nhom khac. */
+    @Transactional
+    public void applyAdd(Team team, User target, User actor) {
+        if (team.getMembers().size() >= MAX_MEMBERS) {
+            throw ApiException.conflict("Nhóm đã đủ " + MAX_MEMBERS + " thành viên");
+        }
+        if (target.getRole() != Role.STUDENT) {
+            throw ApiException.badRequest("Chỉ thêm được sinh viên vào nhóm");
+        }
+        if (teams.findFirstByMembersId(target.getId()).isPresent()) {
+            throw ApiException.conflict(target.getFullName() + " đã thuộc một nhóm khác");
+        }
+        team.getMembers().add(target);
+        teams.save(team);
+        record(team, target, actor, MemberAction.ADDED);
+    }
+
+    @Transactional
+    public void applyRemove(Team team, User removed, User actor) {
+        if (team.getLeader().getId().equals(removed.getId())) {
+            throw ApiException.conflict("Nhóm trưởng cần chuyển quyền trước khi rời nhóm");
+        }
+        if (team.getMembers().stream().noneMatch(m -> m.getId().equals(removed.getId()))) {
+            throw ApiException.conflict(removed.getFullName() + " không còn thuộc nhóm");
+        }
+        team.getMembers().removeIf(m -> m.getId().equals(removed.getId()));
+        teams.save(team);
+        record(team, removed, actor, MemberAction.REMOVED);
+    }
+
+    @Transactional
+    public void applyTransferLeader(Team team, User newLeader, User actor) {
+        if (team.getMembers().stream().noneMatch(m -> m.getId().equals(newLeader.getId()))) {
+            throw ApiException.conflict(newLeader.getFullName() + " không còn thuộc nhóm");
+        }
+        if (team.getLeader().getId().equals(newLeader.getId())) {
+            throw ApiException.conflict(newLeader.getFullName() + " đã là nhóm trưởng");
+        }
+        team.setLeader(newLeader);
+        teams.save(team);
+        record(team, newLeader, actor, MemberAction.LEADER_CHANGED);
+    }
+
     private void record(Team team, User member, User actor, MemberAction action) {
         TeamMemberHistory h = new TeamMemberHistory();
         h.setTeam(team);
@@ -132,6 +177,10 @@ public class TeamService {
         h.setActor(actor);
         h.setAction(action);
         memberHistory.save(h);
+    }
+
+    public boolean isInAnyTeam(User user) {
+        return teams.findFirstByMembersId(user.getId()).isPresent();
     }
 
     public Team find(Long id) {

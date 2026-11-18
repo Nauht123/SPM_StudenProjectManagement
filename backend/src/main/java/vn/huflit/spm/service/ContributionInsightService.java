@@ -83,7 +83,9 @@ public class ContributionInsightService {
      * Canh bao cho giang vien: thanh vien chua duoc giao task, bi yeu cau sua nhieu, dong gop qua thap
      * (duoi nua muc chia deu) hoac dong gop tap trung vao mot nguoi (tren 60%; nhom 2 nguoi: tren 75%).
      */
-    public static List<String> balanceFlags(List<MemberContributionDto> members) {
+    public static List<String> balanceFlags(List<MemberContributionDto> allRows) {
+        // Thanh vien da roi nhom khong tinh vao canh bao can bang (chi con la dong gop lich su)
+        List<MemberContributionDto> members = allRows.stream().filter(m -> !ContributionService.isFormer(m)).toList();
         List<String> flags = new ArrayList<>();
         int n = members.size();
         double total = members.stream().mapToDouble(MemberContributionDto::score).sum();

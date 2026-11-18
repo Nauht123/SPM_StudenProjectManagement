@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api, { errMsg } from '../api.js';
+import api, { downloadFile, errMsg } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Alert, Badge, StatCard, fmtDate } from '../ui.jsx';
 
@@ -104,6 +104,7 @@ export default function TeamDetail() {
   // Quyen: giang vien quan ly milestone chinh; nhom truong (hoac admin) quan ly milestone phu
   const canMain = user.role === 'LECTURER' || user.role === 'ADMIN';
   const canSub = user.role === 'ADMIN' || (user.role === 'STUDENT' && team.leader.id === user.id);
+  const canExport = user.role !== 'STUDENT' || team.leader.id === user.id; // giang vien, admin, nhom truong
   const allMains = milestones.filter((m) => !m.parentId);
   const mains = allMains.filter((m) => !m.archived);
   const archivedMains = allMains.filter((m) => m.archived);
@@ -112,7 +113,14 @@ export default function TeamDetail() {
 
   return (
     <div>
-      <h2>{team.name}</h2>
+      <div className="row between">
+        <h2>{team.name}</h2>
+        {canExport && (
+          <button onClick={() => downloadFile(`/teams/${teamId}/progress/export`, `tien-do-${team.name}.xlsx`).catch((e) => setError(errMsg(e)))}>
+            Xuất báo cáo tiến độ (Excel)
+          </button>
+        )}
+      </div>
       <Alert error={error} />
       {progress && (
         <div className="stat-grid four">

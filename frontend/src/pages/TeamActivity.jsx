@@ -3,9 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import api, { errMsg } from '../api.js';
 import { Alert, Badge, fmtTime } from '../ui.jsx';
 
-const TYPE_LABEL = { TASK: 'Task', COMMENT: 'Bình luận', MILESTONE: 'Milestone', MEMBER: 'Thành viên', GITHUB: 'GitHub' };
-const TYPE_KIND = { TASK: 'good', COMMENT: 'warn', MILESTONE: 'good', MEMBER: 'bad', GITHUB: 'warn' };
-const MEMBER_LABEL = { TEAM_CREATED: 'Tạo nhóm', ADDED: 'Được thêm vào nhóm', REMOVED: 'Bị xóa khỏi nhóm' };
+const TYPE_LABEL = { TASK: 'Task', COMMENT: 'Bình luận', MILESTONE: 'Milestone', MEMBER: 'Thành viên', GITHUB: 'GitHub', SUBMISSION: 'Nộp bài', FEEDBACK: 'Phản hồi', REGISTRATION: 'Đề tài', TEAM_CHANGE: 'Thay đổi nhóm' };
+const TYPE_KIND = { TASK: 'good', COMMENT: 'warn', MILESTONE: 'good', MEMBER: 'bad', GITHUB: 'warn', SUBMISSION: 'good', FEEDBACK: 'warn', REGISTRATION: 'good', TEAM_CHANGE: 'bad' };
+const MEMBER_LABEL = { TEAM_CREATED: 'Tạo nhóm', ADDED: 'Được thêm vào nhóm', REMOVED: 'Bị xóa khỏi nhóm', LEADER_CHANGED: 'Trở thành nhóm trưởng' };
 
 /** Nhat ky hoat dong cua nhom va lich su thay doi thanh vien. */
 export default function TeamActivity() {

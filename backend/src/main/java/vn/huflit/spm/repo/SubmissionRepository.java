@@ -18,4 +18,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     @Query("select coalesce(max(s.version), 0) from Submission s where s.milestone.id = :milestoneId")
     int maxVersion(@Param("milestoneId") Long milestoneId);
+
+    List<Submission> findTop20ByMilestoneTeamIdOrderBySubmittedAtDesc(Long teamId);
 }

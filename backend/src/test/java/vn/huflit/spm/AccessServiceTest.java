@@ -75,4 +75,19 @@ class AccessServiceTest {
         login(member);
         assertThrows(ApiException.class, () -> access.requireLeaderOrAdmin(t));
     }
+
+    @Test
+    void exportAllowedForLecturerLeaderAndAdminOnly() {
+        User leader = user(1, Role.STUDENT);
+        User member = user(2, Role.STUDENT);
+        Team t = team(leader, member);
+        login(user(7, Role.LECTURER));
+        assertDoesNotThrow(() -> access.requireExport(t));
+        login(user(9, Role.ADMIN));
+        assertDoesNotThrow(() -> access.requireExport(t));
+        login(leader);
+        assertDoesNotThrow(() -> access.requireExport(t));
+        login(member);
+        assertThrows(ApiException.class, () -> access.requireExport(t));
+    }
 }

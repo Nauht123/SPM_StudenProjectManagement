@@ -162,7 +162,8 @@ class GithubServiceTest {
     @Test
     void changingRepoClearsOldData() {
         when(access.current()).thenReturn(leader);
-        when(links.findByTeamId(10L)).thenReturn(Optional.of(existingLink("old")));
+        GithubRepoLink old = existingLink("old"); // tao truoc: goi spy ngay trong thenReturn gay UnfinishedStubbingException
+        when(links.findByTeamId(10L)).thenReturn(Optional.of(old));
         when(client.verify("x", "y", null)).thenReturn(new GithubClient.RepoInfo("x/y", false, "main"));
         service.link(10L, new GithubLinkRequest("x/y", null));
         verify(commits).deleteByTeamId(10L);

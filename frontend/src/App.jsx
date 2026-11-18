@@ -33,7 +33,7 @@ const PAGE_INFO = [
   ['/team', 'Nhóm của tôi', 'Quản lý nhóm, thành viên và đề tài đăng ký'],
   ['/topics', 'Danh sách đề tài', 'Tìm và đăng ký đề tài đồ án'],
   ['/my-topics', 'Đề tài của tôi', 'Tạo và quản lý đề tài hướng dẫn'],
-  ['/registrations', 'Đăng ký đề tài', 'Duyệt hoặc từ chối đăng ký của các nhóm'],
+  ['/registrations', 'Đăng ký & yêu cầu nhóm', 'Duyệt đăng ký đề tài và yêu cầu thay đổi thành viên của các nhóm'],
   ['/dashboard', 'Bảng điều khiển', 'Theo dõi tiến độ các nhóm đồ án'],
   ['/milestones/', 'Milestone', 'Công việc, bài nộp và phản hồi'],
   ['/notifications', 'Thông báo', 'Cập nhật mới nhất liên quan đến bạn'],
@@ -58,7 +58,7 @@ function Layout({ children }) {
   if (user.role === 'STUDENT') {
     menu.push(['/team', 'Nhóm của tôi', 'users'], ['/topics', 'Đề tài', 'book']);
   } else if (user.role === 'LECTURER') {
-    menu.push(['/dashboard', 'Tiến độ các nhóm', 'grid'], ['/contributions', 'Đóng góp cá nhân', 'trend'], ['/my-topics', 'Đề tài của tôi', 'book'], ['/registrations', 'Đăng ký đề tài', 'check']);
+    menu.push(['/dashboard', 'Tiến độ các nhóm', 'grid'], ['/contributions', 'Đóng góp cá nhân', 'trend'], ['/my-topics', 'Đề tài của tôi', 'book'], ['/registrations', 'Đăng ký & yêu cầu nhóm', 'check']);
   } else {
     menu.push(['/dashboard', 'Tổng quan', 'grid'], ['/contributions', 'Đóng góp cá nhân', 'trend'], ['/admin/users', 'Người dùng', 'user'], ['/topics', 'Đề tài', 'book']);
   }

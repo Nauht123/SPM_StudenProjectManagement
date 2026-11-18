@@ -76,6 +76,27 @@ Quy tắc nghiệp vụ chính: mỗi sinh viên chỉ thuộc một nhóm; mỗ
 - Chủ đề màu xanh dịu (kiểu TaskFlow): thanh trên và menu dạng thẻ bo góc, thẻ thống kê màu pastel, biểu đồ dùng bảng màu xanh.
 - Trang nhóm dạng bảng phân cấp (kiểu monday.com): mỗi milestone chính là một nhóm có màu riêng, thu gọn/mở rộng được; bên trong là bảng cột Mục / Trạng thái (ô màu) / Tiến độ (thanh %) / Hạn / Task, milestone phụ thụt vào bên dưới. Thành viên hiển thị dạng thẻ có avatar.
 
+### Phân quyền (đã chốt)
+
+| Hành động | Giảng viên HD | Nhóm trưởng | Thành viên | Admin |
+| --- | --- | --- | --- | --- |
+| Tạo / sửa milestone **chính** (mốc thời gian yêu cầu nhóm hoàn thành một phần đồ án) | ✓ | ✗ | ✗ | ✓ |
+| Tạo milestone **phụ**, tạo / giao task, xác nhận hoặc yêu cầu sửa task | ✗ | ✓ | ✗ | ✓ |
+| Đề xuất task, bình luận task, báo hoàn thành task được giao | ✗ (chỉ bình luận) | ✓ | ✓ | ✗ |
+| Phản hồi bài nộp, điều chỉnh điểm đóng góp | ✓ | ✗ | ✗ | ✗ |
+| Xuất báo cáo đóng góp / tiến độ | ✓ | ✓ | ✗ | ✓ |
+| **Duyệt** thay đổi thành viên nhóm | ✓ | ✗ | ✗ | ✓ |
+
+Giảng viên không thêm hay giao task trong nhóm; giảng viên đặt mốc bằng milestone chính, nhóm trưởng chia nhỏ thành milestone phụ và task.
+
+### Thay đổi nhóm sau khi đề tài được duyệt
+
+- **Trước khi đề tài được duyệt:** nhóm trưởng thêm/xóa thành viên trực tiếp.
+- **Sau khi được duyệt:** không ai tự thay đổi được. Nhóm trưởng gửi yêu cầu *thêm thành viên*, *xóa thành viên*, *thay thành viên* hoặc *chuyển quyền nhóm trưởng* kèm lý do; thành viên chỉ được gửi yêu cầu *xin rời nhóm* của chính mình. Giảng viên hướng dẫn duyệt hoặc từ chối (từ chối bắt buộc ghi lý do); khi duyệt, hệ thống kiểm tra lại điều kiện (đủ chỗ, sinh viên chưa thuộc nhóm khác, nhóm trưởng phải chuyển quyền trước khi rời) rồi mới áp dụng.
+- **Khi một thành viên rời nhóm:** task chưa xong (Cần làm / Đang làm) được bỏ giao để nhóm trưởng giao lại; task đang chờ xác nhận hoặc đã hoàn thành giữ nguyên người thực hiện, nên đóng góp đã có vẫn nằm trong tổng điểm nhóm (người đó hiện trong báo cáo với nhãn "đã rời nhóm", không tính vào cảnh báo cân bằng).
+- Mọi thay đổi được ghi vào lịch sử thành viên và nhật ký hoạt động; các bên liên quan nhận thông báo.
+- **Nhật ký hoạt động** gồm: task, bình luận, milestone, thành viên, GitHub PR, nộp bài milestone, phản hồi của giảng viên, đăng ký đề tài, yêu cầu thay đổi nhóm. Không đưa điểm điều chỉnh và đánh giá chéo vào vì chỉ người liên quan mới được xem.
+
 ## Chạy nhanh bằng Docker
 
 ```bash
@@ -127,7 +148,7 @@ backend/src/main/java/vn/huflit/spm
 │              PeerEvaluation, ContributionAdjustment)
 ├── repo/      Spring Data repositories
 ├── dto/       Request/Response DTO
-├── service/   Auth, Topic, Team, Registration, Milestone, Task, Submission(+Feedback), Contribution, PeerEvaluation, Evaluation, Dashboard, Notification, AccessService, FileStorage
+├── service/   Auth, Topic, Team, TeamChange, Registration, Milestone, Task, TaskComment, Submission(+Feedback), Contribution(+Insight), PeerEvaluation, Evaluation, Activity, Github, Dashboard, Notification, ProgressReport, AccessService, FileStorage, XlsxWriter
 └── web/       Controller + GlobalExceptionHandler
 frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 ```
@@ -141,6 +162,7 @@ frontend/src   App.jsx (route + layout), pages/*, api.js, auth.jsx
 | Đề tài | `GET /api/topics`, `GET /api/topics/mine`, `POST/PUT/DELETE /api/topics[/{id}]` |
 | Đăng ký | `POST /api/registrations`, `DELETE /api/registrations/{id}`, `GET /api/registrations/mine`, `GET /api/registrations/lecturer`, `POST /api/registrations/{id}/decision` |
 | Nhóm | `GET /api/teams/me`, `GET /api/teams`, `GET /api/teams/{id}`, `POST /api/teams`, `POST /api/teams/{id}/members`, `DELETE /api/teams/{id}/members/{userId}`, `GET /api/teams/{id}/progress`, `GET /api/dashboard/teams` |
+| Thay đổi nhóm | `POST/GET /api/teams/{id}/change-requests` (gửi / xem), `POST /api/change-requests/{id}/cancel`, `GET /api/change-requests/lecturer`, `POST /api/change-requests/{id}/decision` (giảng viên/admin duyệt hoặc từ chối); `GET /api/teams/{id}/progress/export` (Excel báo cáo tiến độ) |
 | Cộng tác | `GET/POST /api/tasks/{id}/comments`, `DELETE /api/comments/{id}`, `GET /api/teams/{id}/activity`, `GET /api/teams/{id}/member-history`, `GET /api/teams/{id}/calendar?from=&to=` |
 | GitHub | `GET/PUT/DELETE /api/teams/{id}/github` (xem / liên kết repo / gỡ), `POST /api/teams/{id}/github/sync`, `PUT /api/teams/{id}/github/accounts` |
 | Milestone | `GET/POST /api/teams/{id}/milestones` (body có `parentId` = null: milestone chính, khác null: milestone phụ), `GET/PUT/DELETE /api/milestones/{id}` (xóa chỉ khi chưa có dữ liệu), `POST /api/milestones/{id}/archive`, `POST /api/milestones/{id}/restore` |
@@ -162,6 +184,6 @@ Unit test (JUnit 5 + Mockito) trong `backend/src/test`: quy tắc nộp trễ, q
 - Thêm thành viên bằng MSSV (không có bước mời/chấp nhận); thông báo chỉ trong ứng dụng (không email) và được cập nhật bằng polling 30 giây.
 - File nộp lưu trên đĩa của server (volume Docker), chưa dùng object storage; chưa quét virus/giới hạn loại file.
 - Schema do Hibernate `ddl-auto=update` tạo, chưa dùng công cụ migration (Flyway/Liquibase). Các cột mới của `tasks`/`milestones` có giá trị mặc định nên CSDL cũ tự nâng cấp được; task cũ nhận độ khó 3, trọng số 3, khối lượng 4h.
-- Điểm đóng góp tính tại thời điểm xem (không lưu bảng `ContributionScore`); chưa có chấm điểm rubric và lịch sử thay đổi thành viên nhóm (giai đoạn sau).
+- Điểm đóng góp tính tại thời điểm xem (không lưu bảng `ContributionScore`); chưa có chấm điểm theo tiêu chí (rubric), điểm cá nhân và điểm tổng kết — dự kiến Đợt 2.
 - Đánh giá chéo ẩn danh chỉ ẩn ở tầng ứng dụng/API: nhóm rất nhỏ (2–3 người) vẫn có thể đoán ra người chấm từ nội dung nhận xét; quản trị CSDL vẫn đọc được bảng `peer_evaluations`. Có thể mở rộng bằng cách chỉ lưu bản băm hoặc đóng băng kết quả khi chốt điểm.
 - Chưa có integration test và test giao diện tự động.
