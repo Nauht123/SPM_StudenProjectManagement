@@ -6,3 +6,32 @@ frontend/dist/
 .idea/
 .vscode/
 *.log
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Backend
+backend/target/
+*.class
+*.jar
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs and runtime data
+*.log
+docs/evidence/
+uploads/
+*.sql.gz
+
+# Operating system
+.DS_Store
+Thumbs.db

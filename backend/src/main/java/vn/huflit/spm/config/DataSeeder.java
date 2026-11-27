@@ -12,6 +12,7 @@ import vn.huflit.spm.repo.UserRepository;
 
 /** Tao du lieu demo khi CSDL trong (tat bang SEED_DEMO_DATA=false khi trien khai that). */
 @Component
+@org.springframework.core.annotation.Order(1)
 public class DataSeeder implements CommandLineRunner {
     private final UserRepository users;
     private final TopicRepository topics;

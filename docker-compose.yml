@@ -2,6 +2,8 @@ services:
   db:
     image: mysql:8.0
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
       MYSQL_DATABASE: spm
@@ -22,6 +24,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-please-this-is-a-dev-only-secret-key-0123456789}
       UPLOAD_DIR: /data/uploads
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      SEED_FULL_DEMO_DATA: ${SEED_FULL_DEMO_DATA:-false}
     volumes:
       - uploads:/data/uploads
     depends_on:
